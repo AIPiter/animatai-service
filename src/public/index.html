@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AnimatAI</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f0f; color: #e0e0e0; display: flex; min-height: 100vh; }
+
+    .sidebar { width: 280px; background: #1a1a1a; border-right: 1px solid #2a2a2a; padding: 20px; overflow-y: auto; flex-shrink: 0; }
+    .sidebar h2 { font-size: 14px; color: #888; text-transform: uppercase; margin-bottom: 12px; }
+    .project-item { padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-bottom: 4px; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .project-item:hover { background: #2a2a2a; }
+    .project-item.active { background: #333; color: #fff; }
+    .project-status { font-size: 11px; color: #666; }
+
+    .main { flex: 1; padding: 32px; overflow-y: auto; max-width: 960px; }
+    h1 { font-size: 24px; margin-bottom: 24px; }
+
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 13px; color: #aaa; margin-bottom: 6px; }
+    textarea { width: 100%; height: 120px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: #e0e0e0; padding: 12px; font-size: 14px; resize: vertical; }
+    select, input[type="text"] { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: #e0e0e0; padding: 10px 12px; font-size: 14px; }
+
+    .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 500; }
+    .btn-primary { background: #4f46e5; color: #fff; }
+    .btn-primary:hover { background: #4338ca; }
+    .btn-primary:disabled { background: #333; color: #666; cursor: not-allowed; }
+    .btn-secondary { background: #2a2a2a; color: #e0e0e0; }
+    .btn-secondary:hover { background: #333; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .btn-approve { background: #166534; color: #fff; }
+    .btn-approve:hover { background: #15803d; }
+
+    .scenes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 20px; }
+    .scene-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; overflow: hidden; }
+    .scene-card.approved { border-color: #166534; }
+    .scene-card img { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #111; }
+    .scene-card .placeholder { width: 100%; aspect-ratio: 16/9; background: #111; display: flex; align-items: center; justify-content: center; color: #444; font-size: 13px; }
+    .scene-info { padding: 12px; }
+    .scene-number { font-size: 12px; color: #666; margin-bottom: 4px; }
+    .scene-desc { font-size: 13px; margin-bottom: 8px; line-height: 1.4; }
+    .scene-subtitle { font-size: 12px; color: #888; font-style: italic; margin-bottom: 8px; }
+    .scene-prompt { font-size: 11px; color: #555; margin-bottom: 10px; word-break: break-word; }
+    .scene-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    .status-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+    .status-pending { background: #333; color: #888; }
+    .status-generating { background: #92400e; color: #fbbf24; }
+    .status-generating_videos { background: #92400e; color: #fbbf24; }
+    .status-rendering { background: #92400e; color: #fbbf24; }
+    .status-done { background: #1e3a5f; color: #60a5fa; }
+    .status-approved { background: #166534; color: #4ade80; }
+    .status-videos_ready { background: #1e3a5f; color: #60a5fa; }
+    .status-rendered { background: #166534; color: #4ade80; }
+    .status-error { background: #7f1d1d; color: #fca5a5; }
+
+    .error-msg { font-size: 12px; color: #fca5a5; background: #2a1515; padding: 6px 8px; border-radius: 4px; margin-bottom: 8px; }
+
+    .loading { display: inline-block; width: 16px; height: 16px; border: 2px solid #444; border-top-color: #4f46e5; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error { color: #ef4444; font-size: 13px; margin-top: 8px; }
+    .empty { color: #555; text-align: center; padding: 40px; }
+
+    .prompt-edit { width: 100%; background: #111; border: 1px solid #333; border-radius: 4px; color: #ccc; padding: 6px; font-size: 11px; margin-bottom: 6px; resize: vertical; height: 60px; display: none; }
+    .prompt-edit.visible { display: block; }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>Проекты</h2>
+    <div id="projectList"><div class="empty" style="padding:20px;font-size:13px;">Нет проектов</div></div>
+  </div>
+
+  <div class="main">
+    <h1>AnimatAI</h1>
+
+    <div id="createForm">
+      <div class="form-group">
+        <label>Сценарий</label>
+        <textarea id="scenarioInput" placeholder="Опишите сценарий мультика..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Длительность</label>
+        <select id="durationInput">
+          <option value="30">30 секунд (~5 сцен)</option>
+          <option value="60">1 минута (~10 сцен)</option>
+          <option value="120">2 минуты (~20 сцен)</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="createBtn" onclick="createProject()">Создать проект</button>
+      <div id="createError" class="error"></div>
+    </div>
+
+    <div id="projectView" style="display:none;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+        <h2 id="projectTitle" style="font-size:18px;"></h2>
+        <span id="projectStatus" class="status-badge"></span>
+      </div>
+      <p id="projectScenario" style="font-size:13px;color:#888;margin-bottom:16px;"></p>
+
+      <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+        <button class="btn btn-primary" id="generateBtn" onclick="generateImages()">Сгенерировать картинки</button>
+        <button class="btn btn-primary" id="videoBtn" style="display:none;" onclick="generateVideos()">Сгенерировать видео</button>
+        <button class="btn btn-primary" id="renderBtn" style="display:none;" onclick="renderFinalVideo()">Собрать финальное видео</button>
+        <a class="btn btn-primary" id="downloadBtn" style="display:none;text-decoration:none;" href="#">Скачать видео</a>
+        <button class="btn btn-secondary" onclick="showCreateForm()">+ Новый проект</button>
+      </div>
+      <div id="generateError" class="error"></div>
+
+      <div id="scenesContainer" class="scenes-grid"></div>
+    </div>
+  </div>
+
+<script>
+let currentProjectId = null;
+
+async function api(url, options = {}) {
+  const res = await fetch(url, {
+    headers: { 'Content-Type': 'application/json' },
+    ...options,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+function showCreateForm() {
+  document.getElementById('createForm').style.display = 'block';
+  document.getElementById('projectView').style.display = 'none';
+  currentProjectId = null;
+  document.querySelectorAll('.project-item').forEach(el => el.classList.remove('active'));
+}
+
+async function loadProjects() {
+  try {
+    const projects = await api('/api/projects');
+    const list = document.getElementById('projectList');
+    if (projects.length === 0) {
+      list.innerHTML = '<div class="empty" style="padding:20px;font-size:13px;">Нет проектов</div>';
+      return;
+    }
+    list.innerHTML = projects.map(p => `
+      <div class="project-item ${p.id === currentProjectId ? 'active' : ''}"
+           onclick="loadProject('${p.id}')">
+        ${p.scenario.slice(0, 40)}${p.scenario.length > 40 ? '...' : ''}
+        <div class="project-status">${p.duration}с &middot; ${p.status}</div>
+      </div>
+    `).join('');
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function createProject() {
+  const scenario = document.getElementById('scenarioInput').value.trim();
+  const duration = parseInt(document.getElementById('durationInput').value);
+  const errEl = document.getElementById('createError');
+  const btn = document.getElementById('createBtn');
+  errEl.textContent = '';
+
+  if (!scenario) { errEl.textContent = 'Введите сценарий'; return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading"></span> Создание...';
+
+  try {
+    const project = await api('/api/projects', {
+      method: 'POST',
+      body: JSON.stringify({ scenario, duration }),
+    });
+    currentProjectId = project.id;
+    await loadProjects();
+    showProject(project);
+    document.getElementById('scenarioInput').value = '';
+  } catch (e) {
+    errEl.textContent = e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Создать проект';
+  }
+}
+
+async function loadProject(id) {
+  try {
+    currentProjectId = id;
+    const project = await api(`/api/projects/${id}`);
+    showProject(project);
+    loadProjects();
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+function showProject(project) {
+  document.getElementById('createForm').style.display = 'none';
+  document.getElementById('projectView').style.display = 'block';
+
+  document.getElementById('projectTitle').textContent = `Проект (${project.duration}с)`;
+  document.getElementById('projectStatus').textContent = project.status;
+  document.getElementById('projectStatus').className = `status-badge status-${project.status}`;
+  document.getElementById('projectScenario').textContent = project.scenario;
+  document.getElementById('generateError').textContent = '';
+
+  const canGenerate = project.status === 'scenes_ready' || project.status === 'done';
+  document.getElementById('generateBtn').disabled = !canGenerate;
+
+  const scenes = project.scenes || [];
+  const allApproved = scenes.length > 0 && scenes.every(s => s.status === 'approved');
+  const allVideosDone = scenes.length > 0 && scenes.every(s => s.video_status === 'done');
+
+  // Show "Generate Video" button when all scenes approved
+  const videoBtn = document.getElementById('videoBtn');
+  videoBtn.style.display = allApproved ? '' : 'none';
+  videoBtn.disabled = project.status === 'generating_videos';
+  if (project.status === 'generating_videos') {
+    videoBtn.innerHTML = '<span class="loading"></span> Генерация видео...';
+  } else {
+    videoBtn.textContent = 'Сгенерировать видео';
+  }
+
+  // Show "Render" button when all clips ready
+  const renderBtn = document.getElementById('renderBtn');
+  renderBtn.style.display = allVideosDone ? '' : 'none';
+  renderBtn.disabled = project.status === 'rendering';
+  if (project.status === 'rendering') {
+    renderBtn.innerHTML = '<span class="loading"></span> Сборка...';
+  } else {
+    renderBtn.textContent = 'Собрать финальное видео';
+  }
+
+  // Show download button when rendered
+  const downloadBtn = document.getElementById('downloadBtn');
+  downloadBtn.style.display = project.final_video_path ? '' : 'none';
+  downloadBtn.href = `/api/projects/${project.id}/download`;
+
+  renderScenes(scenes);
+}
+
+function renderScenes(scenes) {
+  const container = document.getElementById('scenesContainer');
+  if (scenes.length === 0) {
+    container.innerHTML = '<div class="empty">Нет сцен</div>';
+    return;
+  }
+
+  container.innerHTML = scenes.map(s => `
+    <div class="scene-card ${s.status === 'approved' ? 'approved' : ''}">
+      ${s.image_path
+        ? `<img src="${s.image_path}?t=${Date.now()}" alt="Scene ${s.scene_number}">`
+        : `<div class="placeholder">${s.status === 'error' ? 'Ошибка генерации' : 'Нет изображения'}</div>`
+      }
+      <div class="scene-info">
+        <div class="scene-number">
+          Сцена ${s.scene_number}
+          <span class="status-badge status-${s.status}">${s.status}</span>
+          ${s.video_status && s.video_status !== 'pending' ? `<span class="status-badge status-${s.video_status === 'done' ? 'approved' : s.video_status}">видео: ${s.video_status}</span>` : ''}
+        </div>
+        ${s.error_message ? `<div class="error-msg">${s.error_message}</div>` : ''}
+        ${s.video_error ? `<div class="error-msg">Видео: ${s.video_error}</div>` : ''}
+        <div class="scene-desc">${s.description || ''}</div>
+        <div class="scene-subtitle">"${s.subtitle_text || ''}"</div>
+        <div class="scene-prompt" onclick="togglePromptEdit('${s.id}')" style="cursor:pointer;" title="Нажмите для редактирования">
+          ${s.image_prompt || ''}
+        </div>
+        <textarea class="prompt-edit" id="prompt-${s.id}">${s.image_prompt || ''}</textarea>
+        ${s.status === 'approved' ? `
+          <div style="margin-bottom:6px;">
+            <div style="font-size:11px;color:#666;margin-bottom:2px;">Видео-промпт (движение/камера):</div>
+            <textarea class="prompt-edit visible" id="vidprompt-${s.id}" style="height:40px;">${s.video_prompt || ''}</textarea>
+          </div>
+        ` : ''}
+        <div class="scene-actions">
+          ${s.image_path ? `<button class="btn btn-approve btn-sm" onclick="approveScene('${s.id}')">Одобрить</button>` : ''}
+          <button class="btn btn-secondary btn-sm" onclick="regenerateScene('${s.id}')">Перегенерировать</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function togglePromptEdit(sceneId) {
+  const el = document.getElementById(`prompt-${sceneId}`);
+  el.classList.toggle('visible');
+}
+
+async function generateImages() {
+  const btn = document.getElementById('generateBtn');
+  const errEl = document.getElementById('generateError');
+  errEl.textContent = '';
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading"></span> Генерация...';
+
+  try {
+    const result = await api(`/api/projects/${currentProjectId}/generate`, { method: 'POST' });
+    showProject({ ...result, id: currentProjectId, scenario: document.getElementById('projectScenario').textContent, duration: parseInt(document.getElementById('projectTitle').textContent.match(/\d+/)?.[0] || 30), status: result.status });
+    await loadProject(currentProjectId);
+  } catch (e) {
+    errEl.textContent = e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Сгенерировать картинки';
+  }
+}
+
+async function regenerateScene(sceneId) {
+  const promptEl = document.getElementById(`prompt-${sceneId}`);
+  const newPrompt = promptEl?.value?.trim();
+
+  try {
+    const body = newPrompt ? { image_prompt: newPrompt } : {};
+    await api(`/api/projects/${currentProjectId}/scenes/${sceneId}/regenerate`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    await loadProject(currentProjectId);
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
+  }
+}
+
+async function approveScene(sceneId) {
+  try {
+    await api(`/api/projects/${currentProjectId}/scenes/${sceneId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'approved' }),
+    });
+    await loadProject(currentProjectId);
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
+  }
+}
+
+async function generateVideos() {
+  const btn = document.getElementById('videoBtn');
+  const errEl = document.getElementById('generateError');
+  errEl.textContent = '';
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading"></span> Генерация видео...';
+
+  try {
+    // Save edited video prompts before generating
+    const vidPromptEls = document.querySelectorAll('[id^="vidprompt-"]');
+    for (const el of vidPromptEls) {
+      const sceneId = el.id.replace('vidprompt-', '');
+      const val = el.value.trim();
+      if (val) {
+        await api(`/api/projects/${currentProjectId}/scenes/${sceneId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ video_prompt: val }),
+        });
+      }
+    }
+
+    await api(`/api/projects/${currentProjectId}/video`, { method: 'POST' });
+    await loadProject(currentProjectId);
+  } catch (e) {
+    errEl.textContent = e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Сгенерировать видео';
+  }
+}
+
+async function renderFinalVideo() {
+  const btn = document.getElementById('renderBtn');
+  const errEl = document.getElementById('generateError');
+  errEl.textContent = '';
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading"></span> Сборка...';
+
+  try {
+    await api(`/api/projects/${currentProjectId}/render`, { method: 'POST' });
+    await loadProject(currentProjectId);
+  } catch (e) {
+    errEl.textContent = e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Собрать финальное видео';
+  }
+}
+
+// Init
+loadProjects();
+</script>
+</body>
+</html>
