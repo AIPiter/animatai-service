@@ -19,7 +19,10 @@ import {
   updateSceneVideoError,
   updateSceneVideoPrompt,
   updateProjectVideo,
+  deleteScenesByProject,
+  deleteProject,
 } from './db.js';
+import fs from 'fs';
 import { splitScenario } from './services/scenario.js';
 import { generateImage } from './services/imageGen.js';
 import { generateVideo } from './services/videoGen.js';
@@ -38,6 +41,39 @@ app.use('/storage', express.static(path.join(__dirname, '..', 'storage')));
 app.get('/api/projects', (req, res) => {
   const projects = listProjects.all();
   res.json(projects);
+});
+
+// Delete project with all files
+app.delete('/api/projects/:id', (req, res) => {
+  const project = getProject.get(req.params.id);
+  if (!project) return res.status(404).json({ error: 'Project not found' });
+
+  const scenes = getScenesByProject.all(project.id);
+  const storageRoot = path.join(__dirname, '..');
+
+  // Delete scene files (images + clips)
+  for (const scene of scenes) {
+    if (scene.image_path) {
+      try { fs.unlinkSync(path.join(storageRoot, scene.image_path.replace(/^\//, ''))); } catch {}
+    }
+    if (scene.video_path) {
+      try { fs.unlinkSync(path.join(storageRoot, scene.video_path.replace(/^\//, ''))); } catch {}
+    }
+  }
+
+  // Delete final video + ASS/SRT files
+  if (project.final_video_path) {
+    try { fs.unlinkSync(path.join(storageRoot, project.final_video_path.replace(/^\//, ''))); } catch {}
+  }
+  const outputDir = path.join(storageRoot, 'storage', 'output');
+  try { fs.unlinkSync(path.join(outputDir, `${project.id}.ass`)); } catch {}
+  try { fs.unlinkSync(path.join(outputDir, `${project.id}.srt`)); } catch {}
+
+  // Delete from DB (scenes first due to FK)
+  deleteScenesByProject.run(project.id);
+  deleteProject.run(project.id);
+
+  res.json({ ok: true });
 });
 
 // Get project with scenes
@@ -130,8 +166,8 @@ app.post('/api/projects/:id/generate', async (req, res) => {
         updateSceneImage.run(imagePath, 'done', scene.id);
       } catch (err) {
         console.error(`Error generating image for scene ${scene.scene_number}:`, err);
-        const errorMsg = err.message.includes('Content Moderated')
-          ? 'Content moderated by safety filter. Try editing the prompt.'
+        const errorMsg = (err.message.includes('Moderated') || err.message.includes('Derivative'))
+          ? 'Заблокировано фильтром контента. Отредактируйте промпт — уберите упоминания конкретных персонажей/брендов.'
           : err.message;
         updateSceneError.run(errorMsg, scene.id);
       }
@@ -254,11 +290,28 @@ app.post('/api/projects/:id/render', async (req, res) => {
     updateProjectStatus.run('rendering', project.id);
 
     const clipPaths = scenes.map(s => s.video_path);
-    const subtitles = scenes.map((s, i) => ({
-      start: i * 5,
-      end: (i + 1) * 5,
-      text: s.subtitle_text || '',
-    }));
+    const CLIP_DURATION = 6; // seconds per clip (MiniMax Hailuo 02)
+
+    // Split subtitle_text by "|" into multiple timed phrases per scene
+    const subtitles = [];
+    for (let i = 0; i < scenes.length; i++) {
+      const sceneStart = i * CLIP_DURATION;
+      const text = scenes[i].subtitle_text || '';
+      const phrases = text.split('|').map(p => p.trim()).filter(Boolean);
+
+      if (phrases.length === 0) {
+        subtitles.push({ start: sceneStart, end: sceneStart + CLIP_DURATION, text: '' });
+      } else {
+        const phraseDuration = CLIP_DURATION / phrases.length;
+        for (let j = 0; j < phrases.length; j++) {
+          subtitles.push({
+            start: sceneStart + j * phraseDuration,
+            end: sceneStart + (j + 1) * phraseDuration,
+            text: phrases[j],
+          });
+        }
+      }
+    }
 
     const finalPath = await stitchVideo(clipPaths, subtitles, project.id);
     updateProjectVideo.run(finalPath, project.id);

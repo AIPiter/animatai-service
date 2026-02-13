@@ -108,4 +108,12 @@ export const updateProjectVideo = db.prepare(`
   UPDATE projects SET final_video_path = ? WHERE id = ?
 `);
 
+export const deleteScenesByProject = db.prepare(`
+  DELETE FROM scenes WHERE project_id = ?
+`);
+
+export const deleteProject = db.prepare(`
+  DELETE FROM projects WHERE id = ?
+`);
+
 export default db;

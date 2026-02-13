@@ -107,6 +107,7 @@
         <button class="btn btn-primary" id="renderBtn" style="display:none;" onclick="renderFinalVideo()">Собрать финальное видео</button>
         <a class="btn btn-primary" id="downloadBtn" style="display:none;text-decoration:none;" href="#">Скачать видео</a>
         <button class="btn btn-secondary" onclick="showCreateForm()">+ Новый проект</button>
+        <button class="btn btn-sm" style="background:#7f1d1d;color:#fca5a5;" onclick="deleteCurrentProject()">Удалить проект</button>
       </div>
       <div id="generateError" class="error"></div>
 
@@ -379,6 +380,20 @@ async function renderFinalVideo() {
   } finally {
     btn.disabled = false;
     btn.textContent = 'Собрать финальное видео';
+  }
+}
+
+async function deleteCurrentProject() {
+  if (!currentProjectId) return;
+  if (!confirm('Удалить проект и все файлы?')) return;
+
+  try {
+    await api(`/api/projects/${currentProjectId}`, { method: 'DELETE' });
+    currentProjectId = null;
+    showCreateForm();
+    await loadProjects();
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
   }
 }
 

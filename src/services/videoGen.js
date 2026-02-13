@@ -8,7 +8,7 @@ const CLIPS_DIR = path.join(__dirname, '..', '..', 'storage', 'clips');
 
 fal.config({ credentials: () => process.env.FAL_KEY });
 
-const MODEL = 'fal-ai/kling-video/v2.1/standard/image-to-video';
+const MODEL = process.env.VIDEO_MODEL || 'fal-ai/minimax/hailuo-02/standard/image-to-video';
 
 export async function generateVideo(imagePath, prompt, filename) {
   fs.mkdirSync(CLIPS_DIR, { recursive: true });
@@ -23,22 +23,29 @@ export async function generateVideo(imagePath, prompt, filename) {
 
   const imageUrl = await fal.storage.upload(imageFile);
 
-  const result = await fal.subscribe(MODEL, {
-    input: {
-      image_url: imageUrl,
-      prompt,
-      duration: '5',
-      aspect_ratio: '16:9',
-    },
-    logs: true,
-    onQueueUpdate(update) {
-      if (update.status === 'IN_PROGRESS' && update.logs) {
-        for (const log of update.logs) {
-          console.log(`[videoGen] ${log.message}`);
+  let result;
+  try {
+    result = await fal.subscribe(MODEL, {
+      input: {
+        image_url: imageUrl,
+        prompt,
+        duration: 6,
+        prompt_optimizer: true,
+      },
+      logs: true,
+      onQueueUpdate(update) {
+        if (update.status === 'IN_PROGRESS' && update.logs) {
+          for (const log of update.logs) {
+            console.log(`[videoGen] ${log.message}`);
+          }
         }
-      }
-    },
-  });
+      },
+    });
+  } catch (err) {
+    // Log full validation error details
+    if (err.body) console.error('[videoGen] API error details:', JSON.stringify(err.body));
+    throw err;
+  }
 
   const videoUrl = result.data?.video?.url;
   if (!videoUrl) {

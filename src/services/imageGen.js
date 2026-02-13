@@ -48,7 +48,7 @@ export async function generateImage(prompt, filename) {
       'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
     },
     body: JSON.stringify({
-      model: process.env.IMAGE_MODEL || 'black-forest-labs/flux.2-klein-4b',
+      model: process.env.IMAGE_MODEL || 'black-forest-labs/flux.2-pro',
       messages: [
         {
           role: 'user',
