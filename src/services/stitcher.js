@@ -66,15 +66,10 @@ function escapeFilterPath(p) {
     .replace(/\]/g, '\\]');
 }
 
-export async function stitchVideo(clipPaths, subtitles, projectId) {
+export async function stitchVideo(clipPaths, subtitles, projectId, { crossfadeDuration = 0, keepAudio = false } = {}) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
   const absoluteClips = clipPaths.map(p => path.join(ROOT_DIR, p.replace(/^\//, '')));
-
-  // Create concat list file
-  const concatListPath = path.join(OUTPUT_DIR, `${projectId}_concat.txt`);
-  const concatContent = absoluteClips.map(p => `file '${p}'`).join('\n');
-  fs.writeFileSync(concatListPath, concatContent, 'utf-8');
 
   // Create ASS subtitles (TikTok style: bold, outlined, bottom-center, fade in/out)
   const assPath = path.join(OUTPUT_DIR, `${projectId}.ass`);
@@ -83,12 +78,66 @@ export async function stitchVideo(clipPaths, subtitles, projectId) {
   const outputPath = path.join(OUTPUT_DIR, `${projectId}.mp4`);
   const escapedAssPath = escapeFilterPath(assPath);
 
+  if (crossfadeDuration > 0 && absoluteClips.length > 1) {
+    // Use xfade filter for crossfade transitions
+    return new Promise((resolve, reject) => {
+      const cmd = ffmpeg();
+
+      for (const clip of absoluteClips) {
+        cmd.input(clip);
+      }
+
+      // Build xfade filter chain
+      // Each xfade takes two inputs and produces one output
+      // offset = time in the output where crossfade starts
+      const filters = [];
+      let clipDuration = 5; // each clip is 5s
+      let currentOffset = clipDuration - crossfadeDuration;
+
+      for (let i = 0; i < absoluteClips.length - 1; i++) {
+        const inputA = i === 0 ? `[${i}:v]` : `[xfade${i}]`;
+        const inputB = `[${i + 1}:v]`;
+        const output = i === absoluteClips.length - 2 ? '[vout]' : `[xfade${i + 1}]`;
+
+        filters.push(`${inputA}${inputB}xfade=transition=fadeblack:duration=${crossfadeDuration}:offset=${currentOffset.toFixed(2)}${output}`);
+
+        // Next offset: previous offset + clipDuration - crossfadeDuration
+        currentOffset += clipDuration - crossfadeDuration;
+      }
+
+      // Add subtitles filter
+      filters.push(`[vout]ass='${escapedAssPath}'[final]`);
+
+      const outOpts = ['-c:v', 'libx264', '-crf', '23', '-preset', 'fast'];
+      if (!keepAudio) outOpts.push('-an');
+      else outOpts.push('-c:a', 'aac', '-b:a', '128k');
+
+      cmd
+        .complexFilter(filters.join(';'), 'final')
+        .outputOptions(outOpts)
+        .output(outputPath)
+        .on('start', (c) => console.log('[stitcher] ffmpeg:', c))
+        .on('error', (err) => reject(new Error(`FFmpeg error: ${err.message}`)))
+        .on('end', () => resolve(`/storage/output/${projectId}.mp4`))
+        .run();
+    });
+  }
+
+  // Simple concat (no crossfade)
+  const concatListPath = path.join(OUTPUT_DIR, `${projectId}_concat.txt`);
+  const concatContent = absoluteClips.map(p => `file '${p}'`).join('\n');
+  fs.writeFileSync(concatListPath, concatContent, 'utf-8');
+
   return new Promise((resolve, reject) => {
+    const concatOutOpts = ['-c:v', 'libx264', '-crf', '23', '-preset', 'fast'];
+    if (!keepAudio) concatOutOpts.push('-an');
+    else concatOutOpts.push('-c:a', 'aac', '-b:a', '128k');
+
     ffmpeg()
       .input(concatListPath)
       .inputOptions(['-f', 'concat', '-safe', '0'])
       .videoFilter(`ass='${escapedAssPath}'`)
-      .outputOptions(['-c:v', 'libx264', '-crf', '23', '-preset', 'fast', '-an'])
+      .outputOptions(concatOutOpts)
       .output(outputPath)
       .on('start', (cmd) => console.log('[stitcher] ffmpeg:', cmd))
       .on('error', (err) => {

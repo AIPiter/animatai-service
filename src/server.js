@@ -18,15 +18,19 @@ import {
   updateSceneVideo,
   updateSceneVideoError,
   updateSceneVideoPrompt,
+  updateSceneLastFrame,
   updateProjectVideo,
+  updateProjectVoiceIds,
+  resetSceneVideos,
   deleteScenesByProject,
   deleteProject,
 } from './db.js';
 import fs from 'fs';
-import { splitScenario } from './services/scenario.js';
+import { splitScenario, splitScenarioPro, splitScenarioDeluxe } from './services/scenario.js';
 import { generateImage } from './services/imageGen.js';
-import { generateVideo } from './services/videoGen.js';
+import { generateVideo, generateVideoKling, extractLastFrame } from './services/videoGen.js';
 import { stitchVideo } from './services/stitcher.js';
+import { generateImageFlux } from './services/imageGenFal.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -59,6 +63,9 @@ app.delete('/api/projects/:id', (req, res) => {
     if (scene.video_path) {
       try { fs.unlinkSync(path.join(storageRoot, scene.video_path.replace(/^\//, ''))); } catch {}
     }
+    if (scene.last_frame_path) {
+      try { fs.unlinkSync(path.join(storageRoot, scene.last_frame_path.replace(/^\//, ''))); } catch {}
+    }
   }
 
   // Delete final video + ASS/SRT files
@@ -88,23 +95,41 @@ app.get('/api/projects/:id', (req, res) => {
 // Create project + split scenario into scenes
 app.post('/api/projects', async (req, res) => {
   try {
-    const { scenario, duration } = req.body;
+    const { scenario, duration, style, mode, voice_ids } = req.body;
+    const projectMode = ['pro', 'deluxe'].includes(mode) ? mode : 'standard';
 
-    if (!scenario || !duration) {
-      return res.status(400).json({ error: 'scenario and duration are required' });
+    if (!scenario) {
+      return res.status(400).json({ error: 'scenario is required' });
     }
 
-    if (![30, 60, 120].includes(duration)) {
-      return res.status(400).json({ error: 'duration must be 30, 60, or 120' });
+    if (projectMode === 'standard') {
+      if (!duration || ![30, 60, 120].includes(duration)) {
+        return res.status(400).json({ error: 'duration must be 30, 60, or 120' });
+      }
     }
 
+    const projectStyle = ['anime', 'cartoon', 'pixar'].includes(style) ? style : 'anime';
+    const projectDuration = projectMode === 'pro' ? 25 : projectMode === 'deluxe' ? 15 : duration;
     const projectId = uuidv4();
-    createProject.run(projectId, scenario, duration, null, 'created');
+    createProject.run(projectId, scenario, projectDuration, null, 'created', projectStyle, projectMode);
+
+    // Store voice_ids for deluxe mode
+    if (projectMode === 'deluxe' && voice_ids) {
+      updateProjectVoiceIds.run(JSON.stringify(voice_ids), projectId);
+    }
 
     // Split scenario via LLM
-    const { characterDescription, scenes } = await splitScenario(scenario, duration);
+    let characterDescription, scenes;
+    if (projectMode === 'deluxe') {
+      const result = await splitScenarioDeluxe(scenario, projectStyle);
+      characterDescription = result.characterDescription;
+      scenes = result.scenes;
+    } else if (projectMode === 'pro') {
+      ({ characterDescription, scenes } = await splitScenarioPro(scenario, projectStyle));
+    } else {
+      ({ characterDescription, scenes } = await splitScenario(scenario, projectDuration, projectStyle));
+    }
 
-    // Save character description to project
     if (characterDescription) {
       updateProjectCharDesc.run(characterDescription, projectId);
     }
@@ -117,9 +142,10 @@ app.post('/api/projects', async (req, res) => {
         projectId,
         i + 1,
         scene.description,
-        scene.image_prompt,
+        scene.image_prompt || null,
         scene.subtitle_text,
-        scene.video_prompt || null
+        scene.video_prompt || null,
+        scene.scene_type || 'main'
       );
     }
 
@@ -159,10 +185,19 @@ app.post('/api/projects/:id/generate', async (req, res) => {
     // Generate images sequentially to avoid rate limits
     for (const scene of scenes) {
       if (scene.status === 'approved') continue;
+      // In pro mode, skip transition scenes (no images needed)
+      if (scene.scene_type === 'transition') continue;
+      // In deluxe mode, only scene 1 has an image_prompt; scenes 2,3 get last_frame later
+      if (project.mode === 'deluxe' && !scene.image_prompt) continue;
 
       try {
         const filename = `${project.id}_scene${scene.scene_number}.png`;
-        const imagePath = await generateImage(scene.image_prompt, filename);
+        let imagePath;
+        if (project.mode === 'deluxe') {
+          imagePath = await generateImageFlux(scene.image_prompt, filename);
+        } else {
+          imagePath = await generateImage(scene.image_prompt, filename);
+        }
         updateSceneImage.run(imagePath, 'done', scene.id);
       } catch (err) {
         console.error(`Error generating image for scene ${scene.scene_number}:`, err);
@@ -235,43 +270,225 @@ app.patch('/api/projects/:id/scenes/:sceneId', (req, res) => {
   res.json(updatedScene);
 });
 
+// Reset stuck video generation
+app.post('/api/projects/:id/video/reset', (req, res) => {
+  const project = getProject.get(req.params.id);
+  if (!project) return res.status(404).json({ error: 'Project not found' });
+
+  resetSceneVideos.run(project.id);
+  updateProjectStatus.run('done', project.id);
+
+  const scenes = getScenesByProject.all(project.id);
+  res.json({ ...getProject.get(project.id), scenes });
+});
+
 // Generate video clips from approved frames
-app.post('/api/projects/:id/video', async (req, res) => {
+app.post('/api/projects/:id/video', (req, res) => {
   try {
     const project = getProject.get(req.params.id);
     if (!project) return res.status(404).json({ error: 'Project not found' });
 
+    if (project.status === 'generating_videos') {
+      return res.status(409).json({ error: 'Video generation already in progress' });
+    }
+
     const scenes = getScenesByProject.all(project.id);
-    const allApproved = scenes.length > 0 && scenes.every(s => s.status === 'approved');
-    if (!allApproved) {
-      return res.status(400).json({ error: 'All scenes must be approved before generating video' });
+    const mainScenes = scenes.filter(s => s.scene_type !== 'transition');
+    const allMainApproved = mainScenes.length > 0 && mainScenes.every(s => s.status === 'approved');
+    if (!allMainApproved) {
+      return res.status(400).json({ error: 'All main scenes must be approved before generating video' });
     }
 
     updateProjectStatus.run('generating_videos', project.id);
 
-    for (const scene of scenes) {
-      if (scene.video_status === 'done') continue;
+    // Return immediately — generate in background
+    res.json({ status: 'generating_videos', message: 'Video generation started' });
 
+    // Background processing (fire-and-forget with full error handling)
+    const processor = project.mode === 'pro'
+      ? processProVideoGeneration(project.id, scenes)
+      : processVideoGeneration(project.id, scenes);
+
+    processor.catch(err => {
+      console.error(`[video] Fatal error for project ${project.id}:`, err);
+      try { updateProjectStatus.run('done', project.id); } catch {}
+    });
+  } catch (err) {
+    console.error('Error starting video generation:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+});
+
+async function processVideoGeneration(projectId, scenes) {
+  const pending = scenes.filter(s => s.video_status !== 'done');
+  const CONCURRENCY = 2;
+
+  // Process in batches of CONCURRENCY
+  for (let i = 0; i < pending.length; i += CONCURRENCY) {
+    const batch = pending.slice(i, i + CONCURRENCY);
+    await Promise.all(batch.map(async (scene) => {
       try {
         updateSceneVideo.run(null, 'generating', scene.id);
-        const filename = `${project.id}_scene${scene.scene_number}.mp4`;
-        // Use video_prompt (motion-focused) if available, otherwise fall back to a generic gentle animation prompt
+        const filename = `${projectId}_scene${scene.scene_number}.mp4`;
         const videoPrompt = scene.video_prompt || 'gentle subtle animation, slight movement, soft breathing motion';
         const videoPath = await generateVideo(scene.image_path, videoPrompt, filename);
         updateSceneVideo.run(videoPath, 'done', scene.id);
+        console.log(`[video] Scene ${scene.scene_number} done`);
       } catch (err) {
-        console.error(`Error generating video for scene ${scene.scene_number}:`, err);
-        updateSceneVideoError.run(err.message, scene.id);
+        console.error(`[video] Error scene ${scene.scene_number}:`, err.message);
+        try { updateSceneVideoError.run(err.message, scene.id); } catch {}
       }
+    }));
+  }
+
+  const updated = getScenesByProject.all(projectId);
+  const allDone = updated.filter(s => s.scene_type !== 'transition').every(s => s.video_status === 'done');
+  updateProjectStatus.run(allDone ? 'videos_ready' : 'done', projectId);
+  console.log(`[video] Project ${projectId} finished. All done: ${allDone}`);
+}
+
+async function processProVideoGeneration(projectId, scenes) {
+  const mainScenes = scenes.filter(s => s.scene_type === 'main');
+  const transitionScenes = scenes.filter(s => s.scene_type === 'transition');
+
+  // Step 1: Generate main videos sequentially, extract last frame after each
+  for (const scene of mainScenes) {
+    if (scene.video_status === 'done' && scene.video_path) continue;
+
+    try {
+      updateSceneVideo.run(null, 'generating', scene.id);
+      const filename = `${projectId}_scene${scene.scene_number}.mp4`;
+      const videoPrompt = scene.video_prompt || 'gentle subtle animation, slight movement, soft breathing motion';
+      const videoPath = await generateVideoKling(scene.image_path, videoPrompt, filename);
+      updateSceneVideo.run(videoPath, 'done', scene.id);
+      console.log(`[video-pro] Main scene ${scene.scene_number} done`);
+
+      // Extract last frame
+      const lastFrameFilename = `${projectId}_scene${scene.scene_number}_lastframe.png`;
+      const lastFramePath = await extractLastFrame(videoPath, lastFrameFilename);
+      updateSceneLastFrame.run(lastFramePath, scene.id);
+      console.log(`[video-pro] Extracted last frame for scene ${scene.scene_number}`);
+    } catch (err) {
+      console.error(`[video-pro] Error main scene ${scene.scene_number}:`, err.message);
+      try { updateSceneVideoError.run(err.message, scene.id); } catch {}
+    }
+  }
+
+  // Refresh scenes to get updated paths
+  const updatedScenes = getScenesByProject.all(projectId);
+  const updatedMain = updatedScenes.filter(s => s.scene_type === 'main');
+
+  // Step 2: Generate transitions
+  // Transitions are interleaved: main(1), trans(2), main(3), trans(4), main(5), trans(6), main(7)
+  for (const transition of transitionScenes) {
+    if (transition.video_status === 'done' && transition.video_path) continue;
+
+    try {
+      // Find the previous main scene and next main scene
+      const prevMain = updatedMain.find(s => s.scene_number === transition.scene_number - 1);
+      const nextMain = updatedMain.find(s => s.scene_number === transition.scene_number + 1);
+
+      if (!prevMain?.last_frame_path || !nextMain?.image_path) {
+        console.error(`[video-pro] Missing images for transition ${transition.scene_number}`);
+        updateSceneVideoError.run('Missing start/end images for transition', transition.id);
+        continue;
+      }
+
+      updateSceneVideo.run(null, 'generating', transition.id);
+      const filename = `${projectId}_scene${transition.scene_number}_transition.mp4`;
+      const videoPrompt = transition.video_prompt || 'smooth camera transition, gentle morph';
+
+      const videoPath = await generateVideoKling(
+        prevMain.last_frame_path,
+        videoPrompt,
+        filename,
+        nextMain.image_path
+      );
+      updateSceneVideo.run(videoPath, 'done', transition.id);
+      console.log(`[video-pro] Transition ${transition.scene_number} done`);
+    } catch (err) {
+      console.error(`[video-pro] Error transition ${transition.scene_number}:`, err.message);
+      try { updateSceneVideoError.run(err.message, transition.id); } catch {}
+    }
+  }
+
+  const finalScenes = getScenesByProject.all(projectId);
+  const allDone = finalScenes.every(s => s.video_status === 'done');
+  updateProjectStatus.run(allDone ? 'videos_ready' : 'done', projectId);
+  console.log(`[video-pro] Project ${projectId} finished. All done: ${allDone}`);
+}
+
+// Deluxe: step-by-step video generation (one scene at a time)
+app.post('/api/projects/:id/step', async (req, res) => {
+  try {
+    const project = getProject.get(req.params.id);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+    if (project.mode !== 'deluxe') return res.status(400).json({ error: 'Step endpoint is only for deluxe mode' });
+
+    const scenes = getScenesByProject.all(project.id);
+
+    // Find the next scene that is approved but video not yet generated
+    const nextScene = scenes.find(s => s.status === 'approved' && s.video_status === 'pending');
+    if (!nextScene) {
+      return res.status(400).json({ error: 'No approved scene with pending video found' });
     }
 
-    updateProjectStatus.run('videos_ready', project.id);
+    // Check that the scene has an image (scene 1 from FLUX, scenes 2-3 from last_frame)
+    if (!nextScene.image_path) {
+      return res.status(400).json({ error: `Scene ${nextScene.scene_number} has no image. Previous clip must be generated first.` });
+    }
 
-    const updatedScenes = getScenesByProject.all(project.id);
-    res.json({ status: 'videos_ready', scenes: updatedScenes });
+    updateSceneVideo.run(null, 'generating', nextScene.id);
+    updateProjectStatus.run('generating_videos', project.id);
+
+    // Return immediately, process in background
+    res.json({ status: 'generating', scene_number: nextScene.scene_number });
+
+    // Background processing
+    (async () => {
+      try {
+        const voiceIds = project.voice_ids ? JSON.parse(project.voice_ids) : [];
+        const filename = `${project.id}_scene${nextScene.scene_number}.mp4`;
+        const videoPrompt = nextScene.video_prompt || 'gentle subtle animation, characters talking';
+
+        const videoPath = await generateVideoKling(
+          nextScene.image_path,
+          videoPrompt,
+          filename,
+          undefined,
+          { generateAudio: true, voiceIds }
+        );
+        updateSceneVideo.run(videoPath, 'done', nextScene.id);
+        console.log(`[deluxe] Scene ${nextScene.scene_number} video done`);
+
+        // Extract last frame
+        const lastFrameFilename = `${project.id}_scene${nextScene.scene_number}_lastframe.png`;
+        const lastFramePath = await extractLastFrame(videoPath, lastFrameFilename);
+        updateSceneLastFrame.run(lastFramePath, nextScene.id);
+
+        // If there's a next scene, set the last frame as its image
+        const nextSceneNumber = nextScene.scene_number + 1;
+        const followingScene = scenes.find(s => s.scene_number === nextSceneNumber);
+        if (followingScene) {
+          updateSceneImage.run(lastFramePath, 'done', followingScene.id);
+          console.log(`[deluxe] Set last frame as image for scene ${nextSceneNumber}`);
+        }
+
+        // Check if all scenes are done
+        const updatedScenes = getScenesByProject.all(project.id);
+        const allDone = updatedScenes.every(s => s.video_status === 'done');
+        updateProjectStatus.run(allDone ? 'videos_ready' : 'done', project.id);
+      } catch (err) {
+        console.error(`[deluxe] Error generating video for scene ${nextScene.scene_number}:`, err.message);
+        try { updateSceneVideoError.run(err.message, nextScene.id); } catch {}
+        try { updateProjectStatus.run('done', project.id); } catch {}
+      }
+    })();
   } catch (err) {
-    console.error('Error generating videos:', err);
-    res.status(500).json({ error: err.message });
+    console.error('Error in deluxe step:', err);
+    if (!res.headersSent) res.status(500).json({ error: err.message });
   }
 });
 
@@ -290,19 +507,25 @@ app.post('/api/projects/:id/render', async (req, res) => {
     updateProjectStatus.run('rendering', project.id);
 
     const clipPaths = scenes.map(s => s.video_path);
-    const CLIP_DURATION = 6; // seconds per clip (MiniMax Hailuo 02)
+    const CLIP_DURATION = 5; // seconds per clip
+    const crossfadeDuration = 0;
 
     // Split subtitle_text by "|" into multiple timed phrases per scene
+    // Account for crossfade: each clip after the first loses crossfadeDuration from total
     const subtitles = [];
+    let currentTime = 0;
     for (let i = 0; i < scenes.length; i++) {
-      const sceneStart = i * CLIP_DURATION;
+      const sceneStart = currentTime;
+      const sceneDuration = CLIP_DURATION - (i > 0 ? crossfadeDuration : 0);
+      const sceneEnd = sceneStart + sceneDuration;
+
       const text = scenes[i].subtitle_text || '';
       const phrases = text.split('|').map(p => p.trim()).filter(Boolean);
 
       if (phrases.length === 0) {
-        subtitles.push({ start: sceneStart, end: sceneStart + CLIP_DURATION, text: '' });
+        subtitles.push({ start: sceneStart, end: sceneEnd, text: '' });
       } else {
-        const phraseDuration = CLIP_DURATION / phrases.length;
+        const phraseDuration = sceneDuration / phrases.length;
         for (let j = 0; j < phrases.length; j++) {
           subtitles.push({
             start: sceneStart + j * phraseDuration,
@@ -311,9 +534,12 @@ app.post('/api/projects/:id/render', async (req, res) => {
           });
         }
       }
+
+      currentTime = sceneEnd;
     }
 
-    const finalPath = await stitchVideo(clipPaths, subtitles, project.id);
+    const keepAudio = project.mode === 'deluxe';
+    const finalPath = await stitchVideo(clipPaths, subtitles, project.id, { crossfadeDuration, keepAudio });
     updateProjectVideo.run(finalPath, project.id);
     updateProjectStatus.run('rendered', project.id);
 

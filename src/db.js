@@ -42,9 +42,14 @@ try { db.exec("ALTER TABLE scenes ADD COLUMN video_status TEXT DEFAULT 'pending'
 try { db.exec('ALTER TABLE scenes ADD COLUMN video_error TEXT'); } catch {}
 try { db.exec('ALTER TABLE projects ADD COLUMN final_video_path TEXT'); } catch {}
 try { db.exec('ALTER TABLE scenes ADD COLUMN video_prompt TEXT'); } catch {}
+try { db.exec("ALTER TABLE projects ADD COLUMN style TEXT DEFAULT 'anime'"); } catch {}
+try { db.exec("ALTER TABLE projects ADD COLUMN mode TEXT DEFAULT 'standard'"); } catch {}
+try { db.exec("ALTER TABLE scenes ADD COLUMN scene_type TEXT DEFAULT 'main'"); } catch {}
+try { db.exec("ALTER TABLE scenes ADD COLUMN last_frame_path TEXT"); } catch {}
+try { db.exec("ALTER TABLE projects ADD COLUMN voice_ids TEXT"); } catch {}
 
 export const createProject = db.prepare(`
-  INSERT INTO projects (id, scenario, duration, character_description, status) VALUES (?, ?, ?, ?, ?)
+  INSERT INTO projects (id, scenario, duration, character_description, status, style, mode) VALUES (?, ?, ?, ?, ?, ?, ?)
 `);
 
 export const getProject = db.prepare(`
@@ -64,8 +69,8 @@ export const updateProjectCharDesc = db.prepare(`
 `);
 
 export const createScene = db.prepare(`
-  INSERT INTO scenes (id, project_id, scene_number, description, image_prompt, subtitle_text, video_prompt)
-  VALUES (?, ?, ?, ?, ?, ?, ?)
+  INSERT INTO scenes (id, project_id, scene_number, description, image_prompt, subtitle_text, video_prompt, scene_type)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 `);
 
 export const getScenesByProject = db.prepare(`
@@ -106,6 +111,18 @@ export const updateSceneVideoError = db.prepare(`
 
 export const updateProjectVideo = db.prepare(`
   UPDATE projects SET final_video_path = ? WHERE id = ?
+`);
+
+export const updateSceneLastFrame = db.prepare(`
+  UPDATE scenes SET last_frame_path = ? WHERE id = ?
+`);
+
+export const updateProjectVoiceIds = db.prepare(`
+  UPDATE projects SET voice_ids = ? WHERE id = ?
+`);
+
+export const resetSceneVideos = db.prepare(`
+  UPDATE scenes SET video_path = NULL, video_status = 'pending', video_error = NULL WHERE project_id = ? AND video_status != 'done'
 `);
 
 export const deleteScenesByProject = db.prepare(`

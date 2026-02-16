@@ -83,12 +83,37 @@
         <textarea id="scenarioInput" placeholder="Опишите сценарий мультика..."></textarea>
       </div>
       <div class="form-group">
+        <label>Режим</label>
+        <select id="modeInput" onchange="toggleModeOptions()">
+          <option value="standard">Standard — быстрый, без переходов</option>
+          <option value="pro">Pro — бесшовные переходы (Kling v2.6, ~$2.50)</option>
+          <option value="deluxe">Deluxe — 3 сцены, озвучка EN, субтитры RU (~$2.55)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Стиль</label>
+        <select id="styleInput">
+          <option value="anime">2D Аниме</option>
+          <option value="cartoon">2D Мультфильм</option>
+          <option value="pixar">Pixar 3D</option>
+        </select>
+      </div>
+      <div class="form-group" id="durationGroup">
         <label>Длительность</label>
         <select id="durationInput">
           <option value="30">30 секунд (~5 сцен)</option>
           <option value="60">1 минута (~10 сцен)</option>
           <option value="120">2 минуты (~20 сцен)</option>
         </select>
+      </div>
+      <div id="proDurationNote" style="display:none;font-size:12px;color:#888;margin-bottom:16px;">
+        Pro-режим: 3 сцены + 2 перехода = ~25 секунд бесшовного видео
+      </div>
+      <div id="deluxeNote" style="display:none;font-size:12px;color:#888;margin-bottom:16px;">
+        Deluxe: цепочка из 3 клипов по 5с = 15с бесшовного видео. Персонажи говорят на EN, субтитры RU.
+      </div>
+      <div id="voiceGroup" style="display:none;font-size:12px;color:#888;margin-bottom:16px;">
+        Голоса назначаются автоматически на основе диалогов в промпте (<<<voice_1>>>, <<<voice_2>>>).
       </div>
       <button class="btn btn-primary" id="createBtn" onclick="createProject()">Создать проект</button>
       <div id="createError" class="error"></div>
@@ -104,6 +129,7 @@
       <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
         <button class="btn btn-primary" id="generateBtn" onclick="generateImages()">Сгенерировать картинки</button>
         <button class="btn btn-primary" id="videoBtn" style="display:none;" onclick="generateVideos()">Сгенерировать видео</button>
+        <button class="btn btn-sm" id="resetVideoBtn" style="display:none;background:#92400e;color:#fbbf24;" onclick="resetVideoGeneration()">Сбросить генерацию</button>
         <button class="btn btn-primary" id="renderBtn" style="display:none;" onclick="renderFinalVideo()">Собрать финальное видео</button>
         <a class="btn btn-primary" id="downloadBtn" style="display:none;text-decoration:none;" href="#">Скачать видео</a>
         <button class="btn btn-secondary" onclick="showCreateForm()">+ Новый проект</button>
@@ -147,7 +173,7 @@ async function loadProjects() {
       <div class="project-item ${p.id === currentProjectId ? 'active' : ''}"
            onclick="loadProject('${p.id}')">
         ${p.scenario.slice(0, 40)}${p.scenario.length > 40 ? '...' : ''}
-        <div class="project-status">${p.duration}с &middot; ${p.status}</div>
+        <div class="project-status">${p.duration}с &middot; ${{pixar:'3D',cartoon:'2D Cartoon',anime:'2D Anime'}[p.style]||p.style} &middot; ${p.mode === 'deluxe' ? 'DLX' : p.mode === 'pro' ? 'PRO' : 'STD'} &middot; ${p.status}</div>
       </div>
     `).join('');
   } catch (e) {
@@ -155,14 +181,26 @@ async function loadProjects() {
   }
 }
 
+function toggleModeOptions() {
+  const mode = document.getElementById('modeInput').value;
+  document.getElementById('durationGroup').style.display = (mode === 'pro' || mode === 'deluxe') ? 'none' : '';
+  document.getElementById('proDurationNote').style.display = mode === 'pro' ? '' : 'none';
+  document.getElementById('deluxeNote').style.display = mode === 'deluxe' ? '' : 'none';
+  document.getElementById('voiceGroup').style.display = mode === 'deluxe' ? '' : 'none';
+}
+
 async function createProject() {
   const scenario = document.getElementById('scenarioInput').value.trim();
-  const duration = parseInt(document.getElementById('durationInput').value);
+  const mode = document.getElementById('modeInput').value;
+  const duration = (mode === 'pro' || mode === 'deluxe') ? 15 : parseInt(document.getElementById('durationInput').value);
+  const style = document.getElementById('styleInput').value;
   const errEl = document.getElementById('createError');
   const btn = document.getElementById('createBtn');
   errEl.textContent = '';
 
   if (!scenario) { errEl.textContent = 'Введите сценарий'; return; }
+
+  const body = { scenario, duration, style, mode };
 
   btn.disabled = true;
   btn.innerHTML = '<span class="loading"></span> Создание...';
@@ -170,7 +208,7 @@ async function createProject() {
   try {
     const project = await api('/api/projects', {
       method: 'POST',
-      body: JSON.stringify({ scenario, duration }),
+      body: JSON.stringify(body),
     });
     currentProjectId = project.id;
     await loadProjects();
@@ -195,32 +233,43 @@ async function loadProject(id) {
   }
 }
 
+let currentProject = null;
+
 function showProject(project) {
+  currentProject = project;
   document.getElementById('createForm').style.display = 'none';
   document.getElementById('projectView').style.display = 'block';
 
-  document.getElementById('projectTitle').textContent = `Проект (${project.duration}с)`;
+  const modeLabel = project.mode === 'deluxe' ? 'Deluxe' : project.mode === 'pro' ? 'Pro' : 'Standard';
+  document.getElementById('projectTitle').textContent = `Проект (${project.duration}с, ${modeLabel})`;
   document.getElementById('projectStatus').textContent = project.status;
   document.getElementById('projectStatus').className = `status-badge status-${project.status}`;
   document.getElementById('projectScenario').textContent = project.scenario;
   document.getElementById('generateError').textContent = '';
 
-  const canGenerate = project.status === 'scenes_ready' || project.status === 'done';
-  document.getElementById('generateBtn').disabled = !canGenerate;
-
+  const isDeluxe = project.mode === 'deluxe';
   const scenes = project.scenes || [];
-  const allApproved = scenes.length > 0 && scenes.every(s => s.status === 'approved');
+  const mainScenes = scenes.filter(s => s.scene_type !== 'transition');
+  const allApproved = mainScenes.length > 0 && mainScenes.every(s => s.status === 'approved');
   const allVideosDone = scenes.length > 0 && scenes.every(s => s.video_status === 'done');
 
-  // Show "Generate Video" button when all scenes approved
+  const canGenerate = project.status === 'scenes_ready' || project.status === 'done';
+  document.getElementById('generateBtn').disabled = !canGenerate;
+  // In deluxe, generate button creates only scene 1 image
+  document.getElementById('generateBtn').textContent = isDeluxe ? 'Сгенерировать изображение (сцена 1)' : 'Сгенерировать картинки';
+
+  // Hide standard video button in deluxe (step-by-step instead)
   const videoBtn = document.getElementById('videoBtn');
-  videoBtn.style.display = allApproved ? '' : 'none';
+  videoBtn.style.display = (!isDeluxe && allApproved) ? '' : 'none';
   videoBtn.disabled = project.status === 'generating_videos';
   if (project.status === 'generating_videos') {
     videoBtn.innerHTML = '<span class="loading"></span> Генерация видео...';
   } else {
     videoBtn.textContent = 'Сгенерировать видео';
   }
+
+  // Show reset button when stuck in generating_videos
+  document.getElementById('resetVideoBtn').style.display = project.status === 'generating_videos' ? '' : 'none';
 
   // Show "Render" button when all clips ready
   const renderBtn = document.getElementById('renderBtn');
@@ -237,7 +286,11 @@ function showProject(project) {
   downloadBtn.style.display = project.final_video_path ? '' : 'none';
   downloadBtn.href = `/api/projects/${project.id}/download`;
 
-  renderScenes(scenes);
+  if (isDeluxe) {
+    renderScenesDeluxe(scenes, project);
+  } else {
+    renderScenes(scenes);
+  }
 }
 
 function renderScenes(scenes) {
@@ -247,39 +300,141 @@ function renderScenes(scenes) {
     return;
   }
 
-  container.innerHTML = scenes.map(s => `
-    <div class="scene-card ${s.status === 'approved' ? 'approved' : ''}">
-      ${s.image_path
-        ? `<img src="${s.image_path}?t=${Date.now()}" alt="Scene ${s.scene_number}">`
-        : `<div class="placeholder">${s.status === 'error' ? 'Ошибка генерации' : 'Нет изображения'}</div>`
-      }
-      <div class="scene-info">
-        <div class="scene-number">
-          Сцена ${s.scene_number}
-          <span class="status-badge status-${s.status}">${s.status}</span>
-          ${s.video_status && s.video_status !== 'pending' ? `<span class="status-badge status-${s.video_status === 'done' ? 'approved' : s.video_status}">видео: ${s.video_status}</span>` : ''}
-        </div>
-        ${s.error_message ? `<div class="error-msg">${s.error_message}</div>` : ''}
-        ${s.video_error ? `<div class="error-msg">Видео: ${s.video_error}</div>` : ''}
-        <div class="scene-desc">${s.description || ''}</div>
-        <div class="scene-subtitle">"${s.subtitle_text || ''}"</div>
-        <div class="scene-prompt" onclick="togglePromptEdit('${s.id}')" style="cursor:pointer;" title="Нажмите для редактирования">
-          ${s.image_prompt || ''}
-        </div>
-        <textarea class="prompt-edit" id="prompt-${s.id}">${s.image_prompt || ''}</textarea>
-        ${s.status === 'approved' ? `
-          <div style="margin-bottom:6px;">
-            <div style="font-size:11px;color:#666;margin-bottom:2px;">Видео-промпт (движение/камера):</div>
-            <textarea class="prompt-edit visible" id="vidprompt-${s.id}" style="height:40px;">${s.video_prompt || ''}</textarea>
+  container.innerHTML = scenes.map(s => {
+    const isTransition = s.scene_type === 'transition';
+
+    if (isTransition) {
+      return `
+        <div class="scene-card" style="border-color:#92400e;opacity:0.85;">
+          <div class="placeholder" style="aspect-ratio:16/9;background:#1a1500;color:#fbbf24;font-size:12px;">
+            Переход
+            ${s.video_status === 'done' ? '<br>(видео готово)' : ''}
           </div>
-        ` : ''}
-        <div class="scene-actions">
-          ${s.image_path ? `<button class="btn btn-approve btn-sm" onclick="approveScene('${s.id}')">Одобрить</button>` : ''}
-          <button class="btn btn-secondary btn-sm" onclick="regenerateScene('${s.id}')">Перегенерировать</button>
+          <div class="scene-info">
+            <div class="scene-number">
+              Переход ${s.scene_number}
+              ${s.video_status && s.video_status !== 'pending' ? `<span class="status-badge status-${s.video_status === 'done' ? 'approved' : s.video_status}">видео: ${s.video_status}</span>` : ''}
+            </div>
+            ${s.video_error ? `<div class="error-msg">Видео: ${s.video_error}</div>` : ''}
+            <div class="scene-desc">${s.description || ''}</div>
+            <div class="scene-subtitle">"${s.subtitle_text || ''}"</div>
+            <div style="font-size:11px;color:#666;">video_prompt: ${s.video_prompt || '—'}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="scene-card ${s.status === 'approved' ? 'approved' : ''}">
+        ${s.image_path
+          ? `<img src="${s.image_path}?t=${Date.now()}" alt="Scene ${s.scene_number}">`
+          : `<div class="placeholder">${s.status === 'error' ? 'Ошибка генерации' : 'Нет изображения'}</div>`
+        }
+        <div class="scene-info">
+          <div class="scene-number">
+            Сцена ${s.scene_number}
+            <span class="status-badge status-${s.status}">${s.status}</span>
+            ${s.video_status && s.video_status !== 'pending' ? `<span class="status-badge status-${s.video_status === 'done' ? 'approved' : s.video_status}">видео: ${s.video_status}</span>` : ''}
+          </div>
+          ${s.error_message ? `<div class="error-msg">${s.error_message}</div>` : ''}
+          ${s.video_error ? `<div class="error-msg">Видео: ${s.video_error}</div>` : ''}
+          <div class="scene-desc">${s.description || ''}</div>
+          <div class="scene-subtitle">"${s.subtitle_text || ''}"</div>
+          <div class="scene-prompt" onclick="togglePromptEdit('${s.id}')" style="cursor:pointer;" title="Нажмите для редактирования">
+            ${s.image_prompt || ''}
+          </div>
+          <textarea class="prompt-edit" id="prompt-${s.id}">${s.image_prompt || ''}</textarea>
+          ${s.status === 'approved' ? `
+            <div style="margin-bottom:6px;">
+              <div style="font-size:11px;color:#666;margin-bottom:2px;">Видео-промпт (движение/камера):</div>
+              <textarea class="prompt-edit visible" id="vidprompt-${s.id}" style="height:40px;">${s.video_prompt || ''}</textarea>
+            </div>
+          ` : ''}
+          <div class="scene-actions">
+            ${s.image_path ? `<button class="btn btn-approve btn-sm" onclick="approveScene('${s.id}')">Одобрить</button>` : ''}
+            <button class="btn btn-secondary btn-sm" onclick="regenerateScene('${s.id}')">Перегенерировать</button>
+          </div>
         </div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
+}
+
+function renderScenesDeluxe(scenes, project) {
+  const container = document.getElementById('scenesContainer');
+  if (scenes.length === 0) {
+    container.innerHTML = '<div class="empty">Нет сцен</div>';
+    return;
+  }
+
+  // Deluxe: sequential scene cards. Each scene shows its current state.
+  container.innerHTML = scenes.map((s, idx) => {
+    const hasImage = !!s.image_path;
+    const isApproved = s.status === 'approved';
+    const videoGenerating = s.video_status === 'generating';
+    const videoDone = s.video_status === 'done';
+    const isGeneratingProject = project.status === 'generating_videos';
+
+    // Scene is "locked" if it has no image yet (scenes 2,3 wait for previous clip)
+    const isLocked = !hasImage && idx > 0;
+
+    return `
+      <div class="scene-card ${isApproved ? 'approved' : ''}" style="${isLocked ? 'opacity:0.5;' : ''}">
+        ${hasImage
+          ? `<img src="${s.image_path}?t=${Date.now()}" alt="Scene ${s.scene_number}">`
+          : `<div class="placeholder">${isLocked ? 'Ожидание предыдущего клипа...' : s.status === 'error' ? 'Ошибка генерации' : 'Нет изображения'}</div>`
+        }
+        <div class="scene-info">
+          <div class="scene-number">
+            Сцена ${s.scene_number}
+            <span class="status-badge status-${s.status}">${s.status}</span>
+            ${s.video_status && s.video_status !== 'pending' ? `<span class="status-badge status-${s.video_status === 'done' ? 'approved' : s.video_status}">видео: ${s.video_status}</span>` : ''}
+          </div>
+          ${s.error_message ? `<div class="error-msg">${s.error_message}</div>` : ''}
+          ${s.video_error ? `<div class="error-msg">Видео: ${s.video_error}</div>` : ''}
+          <div class="scene-desc">${s.description || ''}</div>
+          <div class="scene-subtitle">"${s.subtitle_text || ''}"</div>
+          ${s.video_prompt ? `
+            <div style="margin-bottom:6px;">
+              <div style="font-size:11px;color:#666;margin-bottom:2px;">Видео-промпт (диалоги + движение):</div>
+              <textarea class="prompt-edit visible" id="vidprompt-${s.id}" style="height:50px;">${s.video_prompt}</textarea>
+            </div>
+          ` : ''}
+          <div class="scene-actions">
+            ${hasImage && !isApproved && !videoDone ? `<button class="btn btn-approve btn-sm" onclick="approveScene('${s.id}')">Одобрить</button>` : ''}
+            ${isApproved && !videoDone && !videoGenerating ? `<button class="btn btn-primary btn-sm" onclick="deluxeStep()">Генерировать клип</button>` : ''}
+            ${videoGenerating ? `<span class="btn btn-sm" style="background:#92400e;color:#fbbf24;cursor:default;"><span class="loading"></span> Генерация клипа...</span>` : ''}
+            ${videoDone ? `<span style="font-size:12px;color:#4ade80;">Клип готов</span>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function deluxeStep() {
+  const errEl = document.getElementById('generateError');
+  errEl.textContent = '';
+
+  try {
+    // Save any edited video prompts first
+    const vidPromptEls = document.querySelectorAll('[id^="vidprompt-"]');
+    for (const el of vidPromptEls) {
+      const sceneId = el.id.replace('vidprompt-', '');
+      const val = el.value.trim();
+      if (val) {
+        await api(`/api/projects/${currentProjectId}/scenes/${sceneId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ video_prompt: val }),
+        });
+      }
+    }
+
+    await api(`/api/projects/${currentProjectId}/step`, { method: 'POST' });
+    startVideoPolling();
+  } catch (e) {
+    errEl.textContent = e.message;
+  }
 }
 
 function togglePromptEdit(sceneId) {
@@ -356,13 +511,31 @@ async function generateVideos() {
     }
 
     await api(`/api/projects/${currentProjectId}/video`, { method: 'POST' });
-    await loadProject(currentProjectId);
+    // Poll for progress
+    startVideoPolling();
   } catch (e) {
     errEl.textContent = e.message;
-  } finally {
     btn.disabled = false;
     btn.textContent = 'Сгенерировать видео';
   }
+}
+
+let videoPollTimer = null;
+function startVideoPolling() {
+  stopVideoPolling();
+  videoPollTimer = setInterval(async () => {
+    if (!currentProjectId) { stopVideoPolling(); return; }
+    try {
+      const project = await api(`/api/projects/${currentProjectId}`);
+      showProject(project);
+      if (project.status !== 'generating_videos') {
+        stopVideoPolling();
+      }
+    } catch {}
+  }, 5000);
+}
+function stopVideoPolling() {
+  if (videoPollTimer) { clearInterval(videoPollTimer); videoPollTimer = null; }
 }
 
 async function renderFinalVideo() {
@@ -380,6 +553,17 @@ async function renderFinalVideo() {
   } finally {
     btn.disabled = false;
     btn.textContent = 'Собрать финальное видео';
+  }
+}
+
+async function resetVideoGeneration() {
+  if (!currentProjectId) return;
+  try {
+    stopVideoPolling();
+    await api(`/api/projects/${currentProjectId}/video/reset`, { method: 'POST' });
+    await loadProject(currentProjectId);
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
   }
 }
 
