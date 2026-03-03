@@ -24,9 +24,23 @@ import {
   resetSceneVideos,
   deleteScenesByProject,
   deleteProject,
+  createUser,
+  getUserByEmail,
+  createRefreshToken,
+  getRefreshToken,
+  deleteRefreshToken,
+  updateProjectName,
 } from './db.js';
+import {
+  hashPassword,
+  comparePassword,
+  generateAccessToken,
+  generateRefreshToken,
+  hashToken,
+  requireAuth,
+} from './auth.js';
 import fs from 'fs';
-import { splitScenario, splitScenarioPro, splitScenarioDeluxe } from './services/scenario.js';
+import { splitScenario, splitScenarioPro, splitScenarioDeluxe, splitScenarioFreeTrial } from './services/scenario.js';
 import { generateImage } from './services/imageGen.js';
 import { generateVideo, generateVideoKling, extractLastFrame } from './services/videoGen.js';
 import { stitchVideo } from './services/stitcher.js';
@@ -39,23 +53,135 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/storage', express.static(path.join(__dirname, '..', 'storage')));
 
-// --- API Routes ---
+// --- Auth Routes ---
 
-// List all projects
-app.get('/api/projects', (req, res) => {
-  const projects = listProjects.all();
+// Register: create user directly (no email verification)
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { email, username, password } = req.body;
+    if (!email || !username || !password) {
+      return res.status(400).json({ error: 'email, username и password обязательны' });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Пароль должен быть не менее 8 символов' });
+    }
+
+    const existing = await getUserByEmail(email);
+    if (existing) {
+      return res.status(409).json({ error: 'Email уже зарегистрирован' });
+    }
+
+    const passwordHash = await hashPassword(password);
+    const user = await createUser(email, username, passwordHash);
+
+    const accessToken = generateAccessToken(user.id);
+    const rawRefreshToken = generateRefreshToken();
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    await createRefreshToken(user.id, hashToken(rawRefreshToken), expiresAt);
+
+    res.status(201).json({
+      user: { id: user.id, email: user.email, username: user.username },
+      accessToken,
+      refreshToken: rawRefreshToken,
+    });
+  } catch (err) {
+    console.error('Register error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'email and password are required' });
+    }
+
+    const user = await getUserByEmail(email);
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const valid = await comparePassword(password, user.password_hash);
+    if (!valid) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const accessToken = generateAccessToken(user.id);
+    const rawRefreshToken = generateRefreshToken();
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    await createRefreshToken(user.id, hashToken(rawRefreshToken), expiresAt);
+
+    res.json({
+      user: { id: user.id, email: user.email, username: user.username },
+      accessToken,
+      refreshToken: rawRefreshToken,
+    });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/refresh', async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(400).json({ error: 'refreshToken is required' });
+    }
+
+    const tokenRecord = await getRefreshToken(hashToken(refreshToken));
+    if (!tokenRecord) {
+      return res.status(401).json({ error: 'Invalid or expired refresh token' });
+    }
+
+    await deleteRefreshToken(hashToken(refreshToken));
+
+    const accessToken = generateAccessToken(tokenRecord.user_id);
+    const rawRefreshToken = generateRefreshToken();
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    await createRefreshToken(tokenRecord.user_id, hashToken(rawRefreshToken), expiresAt);
+
+    res.json({ accessToken, refreshToken: rawRefreshToken });
+  } catch (err) {
+    console.error('Refresh error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/logout', async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (refreshToken) {
+      await deleteRefreshToken(hashToken(refreshToken));
+    }
+    res.status(204).end();
+  } catch {
+    res.status(204).end();
+  }
+});
+
+app.get('/api/auth/me', requireAuth, (req, res) => {
+  res.json({ user: { id: req.user.id, email: req.user.email, username: req.user.username } });
+});
+
+// --- Project Routes (all protected) ---
+
+// List projects for authenticated user
+app.get('/api/projects', requireAuth, async (req, res) => {
+  const projects = await listProjects(req.user.id);
   res.json(projects);
 });
 
 // Delete project with all files
-app.delete('/api/projects/:id', (req, res) => {
-  const project = getProject.get(req.params.id);
+app.delete('/api/projects/:id', requireAuth, async (req, res) => {
+  const project = await getProject(req.params.id);
   if (!project) return res.status(404).json({ error: 'Project not found' });
+  if (project.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
 
-  const scenes = getScenesByProject.all(project.id);
+  const scenes = await getScenesByProject(project.id);
   const storageRoot = path.join(__dirname, '..');
 
-  // Delete scene files (images + clips)
   for (const scene of scenes) {
     if (scene.image_path) {
       try { fs.unlinkSync(path.join(storageRoot, scene.image_path.replace(/^\//, ''))); } catch {}
@@ -68,7 +194,6 @@ app.delete('/api/projects/:id', (req, res) => {
     }
   }
 
-  // Delete final video + ASS/SRT files
   if (project.final_video_path) {
     try { fs.unlinkSync(path.join(storageRoot, project.final_video_path.replace(/^\//, ''))); } catch {}
   }
@@ -76,27 +201,44 @@ app.delete('/api/projects/:id', (req, res) => {
   try { fs.unlinkSync(path.join(outputDir, `${project.id}.ass`)); } catch {}
   try { fs.unlinkSync(path.join(outputDir, `${project.id}.srt`)); } catch {}
 
-  // Delete from DB (scenes first due to FK)
-  deleteScenesByProject.run(project.id);
-  deleteProject.run(project.id);
+  await deleteScenesByProject(project.id);
+  await deleteProject(project.id);
 
   res.json({ ok: true });
 });
 
 // Get project with scenes
-app.get('/api/projects/:id', (req, res) => {
-  const project = getProject.get(req.params.id);
+app.get('/api/projects/:id', requireAuth, async (req, res) => {
+  const project = await getProject(req.params.id);
   if (!project) return res.status(404).json({ error: 'Project not found' });
+  if (project.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
 
-  const scenes = getScenesByProject.all(project.id);
+  const scenes = await getScenesByProject(project.id);
   res.json({ ...project, scenes });
 });
 
+// Rename project
+app.patch('/api/projects/:id', requireAuth, async (req, res) => {
+  const project = await getProject(req.params.id);
+  if (!project) return res.status(404).json({ error: 'Project not found' });
+  if (project.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+
+  const { name } = req.body;
+  if (name !== undefined) await updateProjectName(name.trim() || null, project.id);
+
+  res.json(await getProject(project.id));
+});
+
 // Create project + split scenario into scenes
-app.post('/api/projects', async (req, res) => {
+app.post('/api/projects', requireAuth, async (req, res) => {
   try {
+    const falKey = req.headers['x-fal-key'];
+    const openrouterKey = req.headers['x-openrouter-key'];
+    if (!falKey) return res.status(400).json({ error: 'fal.ai API key required (X-Fal-Key header)' });
+    if (!openrouterKey) return res.status(400).json({ error: 'OpenRouter API key required (X-Openrouter-Key header)' });
+
     const { scenario, duration, style, mode, voice_ids } = req.body;
-    const projectMode = ['pro', 'deluxe'].includes(mode) ? mode : 'standard';
+    const projectMode = ['pro', 'deluxe', 'freetrial'].includes(mode) ? mode : 'standard';
 
     if (!scenario) {
       return res.status(400).json({ error: 'scenario is required' });
@@ -109,35 +251,35 @@ app.post('/api/projects', async (req, res) => {
     }
 
     const projectStyle = ['anime', 'cartoon', 'pixar'].includes(style) ? style : 'anime';
-    const projectDuration = projectMode === 'pro' ? 25 : projectMode === 'deluxe' ? 15 : duration;
+    const projectDuration = projectMode === 'pro' ? 25 : projectMode === 'deluxe' ? 15 : projectMode === 'freetrial' ? 10 : duration;
     const projectId = uuidv4();
-    createProject.run(projectId, scenario, projectDuration, null, 'created', projectStyle, projectMode);
+    await createProject(projectId, req.user.id, scenario, projectDuration, null, 'created', projectStyle, projectMode);
 
-    // Store voice_ids for deluxe mode
     if (projectMode === 'deluxe' && voice_ids) {
-      updateProjectVoiceIds.run(JSON.stringify(voice_ids), projectId);
+      await updateProjectVoiceIds(JSON.stringify(voice_ids), projectId);
     }
 
-    // Split scenario via LLM
     let characterDescription, scenes;
     if (projectMode === 'deluxe') {
-      const result = await splitScenarioDeluxe(scenario, projectStyle);
+      const result = await splitScenarioDeluxe(scenario, projectStyle, openrouterKey);
       characterDescription = result.characterDescription;
       scenes = result.scenes;
     } else if (projectMode === 'pro') {
-      ({ characterDescription, scenes } = await splitScenarioPro(scenario, projectStyle));
+      ({ characterDescription, scenes } = await splitScenarioPro(scenario, projectStyle, openrouterKey));
+    } else if (projectMode === 'freetrial') {
+      ({ characterDescription, scenes } = await splitScenarioFreeTrial(scenario, projectStyle, openrouterKey));
     } else {
-      ({ characterDescription, scenes } = await splitScenario(scenario, projectDuration, projectStyle));
+      ({ characterDescription, scenes } = await splitScenario(scenario, projectDuration, projectStyle, openrouterKey));
     }
 
     if (characterDescription) {
-      updateProjectCharDesc.run(characterDescription, projectId);
+      await updateProjectCharDesc(characterDescription, projectId);
     }
 
     for (let i = 0; i < scenes.length; i++) {
       const scene = scenes[i];
       const sceneId = uuidv4();
-      createScene.run(
+      await createScene(
         sceneId,
         projectId,
         i + 1,
@@ -149,10 +291,10 @@ app.post('/api/projects', async (req, res) => {
       );
     }
 
-    updateProjectStatus.run('scenes_ready', projectId);
+    await updateProjectStatus('scenes_ready', projectId);
 
-    const project = getProject.get(projectId);
-    const savedScenes = getScenesByProject.all(projectId);
+    const project = await getProject(projectId);
+    const savedScenes = await getScenesByProject(projectId);
     res.json({ ...project, scenes: savedScenes });
   } catch (err) {
     console.error('Error creating project:', err);
@@ -161,56 +303,60 @@ app.post('/api/projects', async (req, res) => {
 });
 
 // Get scenes for a project
-app.get('/api/projects/:id/scenes', (req, res) => {
-  const project = getProject.get(req.params.id);
+app.get('/api/projects/:id/scenes', requireAuth, async (req, res) => {
+  const project = await getProject(req.params.id);
   if (!project) return res.status(404).json({ error: 'Project not found' });
+  if (project.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
 
-  const scenes = getScenesByProject.all(project.id);
+  const scenes = await getScenesByProject(project.id);
   res.json(scenes);
 });
 
 // Generate images for all pending scenes
-app.post('/api/projects/:id/generate', async (req, res) => {
+app.post('/api/projects/:id/generate', requireAuth, async (req, res) => {
   try {
-    const project = getProject.get(req.params.id);
-    if (!project) return res.status(404).json({ error: 'Project not found' });
+    const falKey = req.headers['x-fal-key'];
+    const openrouterKey = req.headers['x-openrouter-key'];
+    if (!falKey) return res.status(400).json({ error: 'fal.ai API key required (X-Fal-Key header)' });
+    if (!openrouterKey) return res.status(400).json({ error: 'OpenRouter API key required (X-Openrouter-Key header)' });
 
-    const scenes = getScenesByProject.all(project.id);
+    const project = await getProject(req.params.id);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+    if (project.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+
+    const scenes = await getScenesByProject(project.id);
     if (scenes.length === 0) {
       return res.status(400).json({ error: 'No scenes found. Create project first.' });
     }
 
-    updateProjectStatus.run('generating', project.id);
+    await updateProjectStatus('generating', project.id);
 
-    // Generate images sequentially to avoid rate limits
     for (const scene of scenes) {
       if (scene.status === 'approved') continue;
-      // In pro mode, skip transition scenes (no images needed)
       if (scene.scene_type === 'transition') continue;
-      // In deluxe mode, only scene 1 has an image_prompt; scenes 2,3 get last_frame later
       if (project.mode === 'deluxe' && !scene.image_prompt) continue;
 
       try {
         const filename = `${project.id}_scene${scene.scene_number}.png`;
         let imagePath;
-        if (project.mode === 'deluxe') {
-          imagePath = await generateImageFlux(scene.image_prompt, filename);
+        if (project.mode === 'deluxe' || project.mode === 'freetrial') {
+          imagePath = await generateImageFlux(scene.image_prompt, filename, falKey);
         } else {
-          imagePath = await generateImage(scene.image_prompt, filename);
+          imagePath = await generateImage(scene.image_prompt, filename, openrouterKey);
         }
-        updateSceneImage.run(imagePath, 'done', scene.id);
+        await updateSceneImage(imagePath, 'done', scene.id);
       } catch (err) {
         console.error(`Error generating image for scene ${scene.scene_number}:`, err);
         const errorMsg = (err.message.includes('Moderated') || err.message.includes('Derivative'))
           ? 'Заблокировано фильтром контента. Отредактируйте промпт — уберите упоминания конкретных персонажей/брендов.'
           : err.message;
-        updateSceneError.run(errorMsg, scene.id);
+        await updateSceneError(errorMsg, scene.id);
       }
     }
 
-    updateProjectStatus.run('done', project.id);
+    await updateProjectStatus('done', project.id);
 
-    const updatedScenes = getScenesByProject.all(project.id);
+    const updatedScenes = await getScenesByProject(project.id);
     res.json({ status: 'done', scenes: updatedScenes });
   } catch (err) {
     console.error('Error generating images:', err);
@@ -219,28 +365,36 @@ app.post('/api/projects/:id/generate', async (req, res) => {
 });
 
 // Regenerate image for a single scene
-app.post('/api/projects/:id/scenes/:sceneId/regenerate', async (req, res) => {
+app.post('/api/projects/:id/scenes/:sceneId/regenerate', requireAuth, async (req, res) => {
   try {
-    const project = getProject.get(req.params.id);
-    if (!project) return res.status(404).json({ error: 'Project not found' });
+    const falKey = req.headers['x-fal-key'];
+    const openrouterKey = req.headers['x-openrouter-key'];
+    if (!falKey) return res.status(400).json({ error: 'fal.ai API key required' });
+    if (!openrouterKey) return res.status(400).json({ error: 'OpenRouter API key required' });
 
-    const scene = getScene.get(req.params.sceneId);
+    const project = await getProject(req.params.id);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+    if (project.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+
+    const scene = await getScene(req.params.sceneId);
     if (!scene || scene.project_id !== project.id) {
       return res.status(404).json({ error: 'Scene not found' });
     }
 
-    // Allow updating the prompt
     const { image_prompt } = req.body || {};
     if (image_prompt) {
-      updateScenePrompt.run(image_prompt, scene.id);
+      await updateScenePrompt(image_prompt, scene.id);
     }
 
     const prompt = image_prompt || scene.image_prompt;
     const filename = `${project.id}_scene${scene.scene_number}.png`;
-    const imagePath = await generateImage(prompt, filename);
-    updateSceneImage.run(imagePath, 'done', scene.id);
+    const useFlux = project.mode === 'deluxe' || project.mode === 'freetrial';
+    const imagePath = useFlux
+      ? await generateImageFlux(prompt, filename, falKey)
+      : await generateImage(prompt, filename, openrouterKey);
+    await updateSceneImage(imagePath, 'done', scene.id);
 
-    const updatedScene = getScene.get(scene.id);
+    const updatedScene = await getScene(scene.id);
     res.json(updatedScene);
   } catch (err) {
     console.error('Error regenerating image:', err);
@@ -248,70 +402,75 @@ app.post('/api/projects/:id/scenes/:sceneId/regenerate', async (req, res) => {
   }
 });
 
-// Approve a scene
-app.patch('/api/projects/:id/scenes/:sceneId', (req, res) => {
-  const project = getProject.get(req.params.id);
+// Approve a scene or update video_prompt
+app.patch('/api/projects/:id/scenes/:sceneId', requireAuth, async (req, res) => {
+  const project = await getProject(req.params.id);
   if (!project) return res.status(404).json({ error: 'Project not found' });
+  if (project.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
 
-  const scene = getScene.get(req.params.sceneId);
+  const scene = await getScene(req.params.sceneId);
   if (!scene || scene.project_id !== project.id) {
     return res.status(404).json({ error: 'Scene not found' });
   }
 
   const { status, video_prompt } = req.body;
   if (status && ['pending', 'done', 'approved'].includes(status)) {
-    updateSceneImage.run(scene.image_path, status, scene.id);
+    await updateSceneImage(scene.image_path, status, scene.id);
   }
   if (video_prompt !== undefined) {
-    updateSceneVideoPrompt.run(video_prompt, scene.id);
+    await updateSceneVideoPrompt(video_prompt, scene.id);
   }
 
-  const updatedScene = getScene.get(scene.id);
+  const updatedScene = await getScene(scene.id);
   res.json(updatedScene);
 });
 
 // Reset stuck video generation
-app.post('/api/projects/:id/video/reset', (req, res) => {
-  const project = getProject.get(req.params.id);
+app.post('/api/projects/:id/video/reset', requireAuth, async (req, res) => {
+  const project = await getProject(req.params.id);
   if (!project) return res.status(404).json({ error: 'Project not found' });
+  if (project.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
 
-  resetSceneVideos.run(project.id);
-  updateProjectStatus.run('done', project.id);
+  await resetSceneVideos(project.id);
+  await updateProjectStatus('done', project.id);
 
-  const scenes = getScenesByProject.all(project.id);
-  res.json({ ...getProject.get(project.id), scenes });
+  const scenes = await getScenesByProject(project.id);
+  const updatedProject = await getProject(project.id);
+  res.json({ ...updatedProject, scenes });
 });
 
 // Generate video clips from approved frames
-app.post('/api/projects/:id/video', (req, res) => {
+app.post('/api/projects/:id/video', requireAuth, async (req, res) => {
   try {
-    const project = getProject.get(req.params.id);
+    const falKey = req.headers['x-fal-key'];
+    if (!falKey) return res.status(400).json({ error: 'fal.ai API key required (X-Fal-Key header)' });
+
+    const project = await getProject(req.params.id);
     if (!project) return res.status(404).json({ error: 'Project not found' });
+    if (project.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
 
     if (project.status === 'generating_videos') {
       return res.status(409).json({ error: 'Video generation already in progress' });
     }
 
-    const scenes = getScenesByProject.all(project.id);
+    const scenes = await getScenesByProject(project.id);
     const mainScenes = scenes.filter(s => s.scene_type !== 'transition');
     const allMainApproved = mainScenes.length > 0 && mainScenes.every(s => s.status === 'approved');
     if (!allMainApproved) {
       return res.status(400).json({ error: 'All main scenes must be approved before generating video' });
     }
 
-    updateProjectStatus.run('generating_videos', project.id);
+    await updateProjectStatus('generating_videos', project.id);
 
-    // Return immediately — generate in background
     res.json({ status: 'generating_videos', message: 'Video generation started' });
 
-    // Background processing (fire-and-forget with full error handling)
     const processor = project.mode === 'pro'
-      ? processProVideoGeneration(project.id, scenes)
-      : processVideoGeneration(project.id, scenes);
+      ? processProVideoGeneration(project.id, scenes, falKey)
+      : processVideoGeneration(project.id, scenes, falKey);
 
-    processor.catch(err => {
+    processor.catch(async err => {
       console.error(`[video] Fatal error for project ${project.id}:`, err);
-      try { updateProjectStatus.run('done', project.id); } catch {}
+      try { await updateProjectStatus('done', project.id); } catch {}
     });
   } catch (err) {
     console.error('Error starting video generation:', err);
@@ -321,82 +480,75 @@ app.post('/api/projects/:id/video', (req, res) => {
   }
 });
 
-async function processVideoGeneration(projectId, scenes) {
+async function processVideoGeneration(projectId, scenes, falKey) {
   const pending = scenes.filter(s => s.video_status !== 'done');
   const CONCURRENCY = 2;
 
-  // Process in batches of CONCURRENCY
   for (let i = 0; i < pending.length; i += CONCURRENCY) {
     const batch = pending.slice(i, i + CONCURRENCY);
     await Promise.all(batch.map(async (scene) => {
       try {
-        updateSceneVideo.run(null, 'generating', scene.id);
+        await updateSceneVideo(null, 'generating', scene.id);
         const filename = `${projectId}_scene${scene.scene_number}.mp4`;
         const videoPrompt = scene.video_prompt || 'gentle subtle animation, slight movement, soft breathing motion';
-        const videoPath = await generateVideo(scene.image_path, videoPrompt, filename);
-        updateSceneVideo.run(videoPath, 'done', scene.id);
+        const videoPath = await generateVideo(scene.image_path, videoPrompt, filename, falKey);
+        await updateSceneVideo(videoPath, 'done', scene.id);
         console.log(`[video] Scene ${scene.scene_number} done`);
       } catch (err) {
         console.error(`[video] Error scene ${scene.scene_number}:`, err.message);
-        try { updateSceneVideoError.run(err.message, scene.id); } catch {}
+        try { await updateSceneVideoError(err.message, scene.id); } catch {}
       }
     }));
   }
 
-  const updated = getScenesByProject.all(projectId);
+  const updated = await getScenesByProject(projectId);
   const allDone = updated.filter(s => s.scene_type !== 'transition').every(s => s.video_status === 'done');
-  updateProjectStatus.run(allDone ? 'videos_ready' : 'done', projectId);
+  await updateProjectStatus(allDone ? 'videos_ready' : 'done', projectId);
   console.log(`[video] Project ${projectId} finished. All done: ${allDone}`);
 }
 
-async function processProVideoGeneration(projectId, scenes) {
+async function processProVideoGeneration(projectId, scenes, falKey) {
   const mainScenes = scenes.filter(s => s.scene_type === 'main');
   const transitionScenes = scenes.filter(s => s.scene_type === 'transition');
 
-  // Step 1: Generate main videos sequentially, extract last frame after each
   for (const scene of mainScenes) {
     if (scene.video_status === 'done' && scene.video_path) continue;
 
     try {
-      updateSceneVideo.run(null, 'generating', scene.id);
+      await updateSceneVideo(null, 'generating', scene.id);
       const filename = `${projectId}_scene${scene.scene_number}.mp4`;
       const videoPrompt = scene.video_prompt || 'gentle subtle animation, slight movement, soft breathing motion';
-      const videoPath = await generateVideoKling(scene.image_path, videoPrompt, filename);
-      updateSceneVideo.run(videoPath, 'done', scene.id);
+      const videoPath = await generateVideoKling(scene.image_path, videoPrompt, filename, undefined, {}, falKey);
+      await updateSceneVideo(videoPath, 'done', scene.id);
       console.log(`[video-pro] Main scene ${scene.scene_number} done`);
 
-      // Extract last frame
       const lastFrameFilename = `${projectId}_scene${scene.scene_number}_lastframe.png`;
       const lastFramePath = await extractLastFrame(videoPath, lastFrameFilename);
-      updateSceneLastFrame.run(lastFramePath, scene.id);
+      await updateSceneLastFrame(lastFramePath, scene.id);
       console.log(`[video-pro] Extracted last frame for scene ${scene.scene_number}`);
     } catch (err) {
       console.error(`[video-pro] Error main scene ${scene.scene_number}:`, err.message);
-      try { updateSceneVideoError.run(err.message, scene.id); } catch {}
+      try { await updateSceneVideoError(err.message, scene.id); } catch {}
     }
   }
 
-  // Refresh scenes to get updated paths
-  const updatedScenes = getScenesByProject.all(projectId);
+  const updatedScenes = await getScenesByProject(projectId);
   const updatedMain = updatedScenes.filter(s => s.scene_type === 'main');
 
-  // Step 2: Generate transitions
-  // Transitions are interleaved: main(1), trans(2), main(3), trans(4), main(5), trans(6), main(7)
   for (const transition of transitionScenes) {
     if (transition.video_status === 'done' && transition.video_path) continue;
 
     try {
-      // Find the previous main scene and next main scene
       const prevMain = updatedMain.find(s => s.scene_number === transition.scene_number - 1);
       const nextMain = updatedMain.find(s => s.scene_number === transition.scene_number + 1);
 
       if (!prevMain?.last_frame_path || !nextMain?.image_path) {
         console.error(`[video-pro] Missing images for transition ${transition.scene_number}`);
-        updateSceneVideoError.run('Missing start/end images for transition', transition.id);
+        await updateSceneVideoError('Missing start/end images for transition', transition.id);
         continue;
       }
 
-      updateSceneVideo.run(null, 'generating', transition.id);
+      await updateSceneVideo(null, 'generating', transition.id);
       const filename = `${projectId}_scene${transition.scene_number}_transition.mp4`;
       const videoPrompt = transition.video_prompt || 'smooth camera transition, gentle morph';
 
@@ -404,49 +556,51 @@ async function processProVideoGeneration(projectId, scenes) {
         prevMain.last_frame_path,
         videoPrompt,
         filename,
-        nextMain.image_path
+        nextMain.image_path,
+        {},
+        falKey
       );
-      updateSceneVideo.run(videoPath, 'done', transition.id);
+      await updateSceneVideo(videoPath, 'done', transition.id);
       console.log(`[video-pro] Transition ${transition.scene_number} done`);
     } catch (err) {
       console.error(`[video-pro] Error transition ${transition.scene_number}:`, err.message);
-      try { updateSceneVideoError.run(err.message, transition.id); } catch {}
+      try { await updateSceneVideoError(err.message, transition.id); } catch {}
     }
   }
 
-  const finalScenes = getScenesByProject.all(projectId);
+  const finalScenes = await getScenesByProject(projectId);
   const allDone = finalScenes.every(s => s.video_status === 'done');
-  updateProjectStatus.run(allDone ? 'videos_ready' : 'done', projectId);
+  await updateProjectStatus(allDone ? 'videos_ready' : 'done', projectId);
   console.log(`[video-pro] Project ${projectId} finished. All done: ${allDone}`);
 }
 
-// Deluxe: step-by-step video generation (one scene at a time)
-app.post('/api/projects/:id/step', async (req, res) => {
+// Deluxe: step-by-step video generation
+app.post('/api/projects/:id/step', requireAuth, async (req, res) => {
   try {
-    const project = getProject.get(req.params.id);
+    const falKey = req.headers['x-fal-key'];
+    if (!falKey) return res.status(400).json({ error: 'fal.ai API key required (X-Fal-Key header)' });
+
+    const project = await getProject(req.params.id);
     if (!project) return res.status(404).json({ error: 'Project not found' });
+    if (project.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
     if (project.mode !== 'deluxe') return res.status(400).json({ error: 'Step endpoint is only for deluxe mode' });
 
-    const scenes = getScenesByProject.all(project.id);
+    const scenes = await getScenesByProject(project.id);
 
-    // Find the next scene that is approved but video not yet generated
     const nextScene = scenes.find(s => s.status === 'approved' && s.video_status === 'pending');
     if (!nextScene) {
       return res.status(400).json({ error: 'No approved scene with pending video found' });
     }
 
-    // Check that the scene has an image (scene 1 from FLUX, scenes 2-3 from last_frame)
     if (!nextScene.image_path) {
       return res.status(400).json({ error: `Scene ${nextScene.scene_number} has no image. Previous clip must be generated first.` });
     }
 
-    updateSceneVideo.run(null, 'generating', nextScene.id);
-    updateProjectStatus.run('generating_videos', project.id);
+    await updateSceneVideo(null, 'generating', nextScene.id);
+    await updateProjectStatus('generating_videos', project.id);
 
-    // Return immediately, process in background
     res.json({ status: 'generating', scene_number: nextScene.scene_number });
 
-    // Background processing
     (async () => {
       try {
         const voiceIds = project.voice_ids ? JSON.parse(project.voice_ids) : [];
@@ -458,32 +612,30 @@ app.post('/api/projects/:id/step', async (req, res) => {
           videoPrompt,
           filename,
           undefined,
-          { generateAudio: true, voiceIds }
+          { generateAudio: true, voiceIds },
+          falKey
         );
-        updateSceneVideo.run(videoPath, 'done', nextScene.id);
+        await updateSceneVideo(videoPath, 'done', nextScene.id);
         console.log(`[deluxe] Scene ${nextScene.scene_number} video done`);
 
-        // Extract last frame
         const lastFrameFilename = `${project.id}_scene${nextScene.scene_number}_lastframe.png`;
         const lastFramePath = await extractLastFrame(videoPath, lastFrameFilename);
-        updateSceneLastFrame.run(lastFramePath, nextScene.id);
+        await updateSceneLastFrame(lastFramePath, nextScene.id);
 
-        // If there's a next scene, set the last frame as its image
         const nextSceneNumber = nextScene.scene_number + 1;
         const followingScene = scenes.find(s => s.scene_number === nextSceneNumber);
         if (followingScene) {
-          updateSceneImage.run(lastFramePath, 'done', followingScene.id);
+          await updateSceneImage(lastFramePath, 'done', followingScene.id);
           console.log(`[deluxe] Set last frame as image for scene ${nextSceneNumber}`);
         }
 
-        // Check if all scenes are done
-        const updatedScenes = getScenesByProject.all(project.id);
+        const updatedScenes = await getScenesByProject(project.id);
         const allDone = updatedScenes.every(s => s.video_status === 'done');
-        updateProjectStatus.run(allDone ? 'videos_ready' : 'done', project.id);
+        await updateProjectStatus(allDone ? 'videos_ready' : 'done', project.id);
       } catch (err) {
         console.error(`[deluxe] Error generating video for scene ${nextScene.scene_number}:`, err.message);
-        try { updateSceneVideoError.run(err.message, nextScene.id); } catch {}
-        try { updateProjectStatus.run('done', project.id); } catch {}
+        try { await updateSceneVideoError(err.message, nextScene.id); } catch {}
+        try { await updateProjectStatus('done', project.id); } catch {}
       }
     })();
   } catch (err) {
@@ -493,25 +645,24 @@ app.post('/api/projects/:id/step', async (req, res) => {
 });
 
 // Render final video (stitch clips + subtitles)
-app.post('/api/projects/:id/render', async (req, res) => {
+app.post('/api/projects/:id/render', requireAuth, async (req, res) => {
   try {
-    const project = getProject.get(req.params.id);
+    const project = await getProject(req.params.id);
     if (!project) return res.status(404).json({ error: 'Project not found' });
+    if (project.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
 
-    const scenes = getScenesByProject.all(project.id);
+    const scenes = await getScenesByProject(project.id);
     const allVideoDone = scenes.length > 0 && scenes.every(s => s.video_status === 'done');
     if (!allVideoDone) {
       return res.status(400).json({ error: 'All video clips must be generated first' });
     }
 
-    updateProjectStatus.run('rendering', project.id);
+    await updateProjectStatus('rendering', project.id);
 
     const clipPaths = scenes.map(s => s.video_path);
-    const CLIP_DURATION = 5; // seconds per clip
+    const CLIP_DURATION = 5;
     const crossfadeDuration = 0;
 
-    // Split subtitle_text by "|" into multiple timed phrases per scene
-    // Account for crossfade: each clip after the first loses crossfadeDuration from total
     const subtitles = [];
     let currentTime = 0;
     for (let i = 0; i < scenes.length; i++) {
@@ -540,20 +691,20 @@ app.post('/api/projects/:id/render', async (req, res) => {
 
     const keepAudio = project.mode === 'deluxe';
     const finalPath = await stitchVideo(clipPaths, subtitles, project.id, { crossfadeDuration, keepAudio });
-    updateProjectVideo.run(finalPath, project.id);
-    updateProjectStatus.run('rendered', project.id);
+    await updateProjectVideo(finalPath, project.id);
+    await updateProjectStatus('rendered', project.id);
 
     res.json({ status: 'rendered', final_video_path: finalPath });
   } catch (err) {
     console.error('Error rendering video:', err);
-    updateProjectStatus.run('videos_ready', req.params.id);
+    await updateProjectStatus('videos_ready', req.params.id);
     res.status(500).json({ error: err.message });
   }
 });
 
 // Download final video
-app.get('/api/projects/:id/download', (req, res) => {
-  const project = getProject.get(req.params.id);
+app.get('/api/projects/:id/download', async (req, res) => {
+  const project = await getProject(req.params.id);
   if (!project) return res.status(404).json({ error: 'Project not found' });
   if (!project.final_video_path) return res.status(404).json({ error: 'No final video available' });
 

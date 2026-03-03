@@ -1,0 +1,6 @@
+services:
+  app:
+    command: npm run dev
+    volumes:
+      - ./src:/app/src
+      - ./storage:/app/storage

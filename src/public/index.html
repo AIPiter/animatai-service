@@ -5,91 +5,1015 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AnimatAI</title>
   <style>
+    /* ===== Variables ===== */
+    :root {
+      --bg:       #0f0f0f;
+      --surface:  #1a1a1a;
+      --border:   #2a2a2a;
+      --text:     #ffffff;
+      --muted:    #a0a0a0;
+      --accent:   #2563eb;
+      --accent-h: #1d4ed8;
+      --danger:   #ef4444;
+      --success:  #22c55e;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f0f; color: #e0e0e0; display: flex; min-height: 100vh; }
 
-    .sidebar { width: 280px; background: #1a1a1a; border-right: 1px solid #2a2a2a; padding: 20px; overflow-y: auto; flex-shrink: 0; }
-    .sidebar h2 { font-size: 14px; color: #888; text-transform: uppercase; margin-bottom: 12px; }
-    .project-item { padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-bottom: 4px; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .project-item:hover { background: #2a2a2a; }
-    .project-item.active { background: #333; color: #fff; }
-    .project-status { font-size: 11px; color: #666; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
 
-    .main { flex: 1; padding: 32px; overflow-y: auto; max-width: 960px; }
-    h1 { font-size: 24px; margin-bottom: 24px; }
+    /* ===== Background orbs (shared across landing + auth) ===== */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.1;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .orb-1 {
+      width: 700px; height: 700px;
+      background: #2563eb;
+      top: -250px; left: -200px;
+      animation: drift1 24s ease-in-out infinite;
+    }
+    .orb-2 {
+      width: 550px; height: 550px;
+      background: #7c3aed;
+      top: 35%; right: -180px;
+      animation: drift2 30s ease-in-out infinite;
+    }
+    .orb-3 {
+      width: 420px; height: 420px;
+      background: #0ea5e9;
+      bottom: -120px; left: 28%;
+      animation: drift3 20s ease-in-out infinite;
+    }
+    @keyframes drift1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(100px, 90px); } }
+    @keyframes drift2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-80px, 100px); } }
+    @keyframes drift3 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(60px, -60px); } }
 
-    .form-group { margin-bottom: 16px; }
-    label { display: block; font-size: 13px; color: #aaa; margin-bottom: 6px; }
-    textarea { width: 100%; height: 120px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: #e0e0e0; padding: 12px; font-size: 14px; resize: vertical; }
-    select, input[type="text"] { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: #e0e0e0; padding: 10px 12px; font-size: 14px; }
+    /* ===== Landing ===== */
+    #view-landing {
+      min-height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
 
-    .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 500; }
-    .btn-primary { background: #4f46e5; color: #fff; }
-    .btn-primary:hover { background: #4338ca; }
-    .btn-primary:disabled { background: #333; color: #666; cursor: not-allowed; }
-    .btn-secondary { background: #2a2a2a; color: #e0e0e0; }
-    .btn-secondary:hover { background: #333; }
-    .btn-sm { padding: 6px 12px; font-size: 12px; }
-    .btn-approve { background: #166534; color: #fff; }
-    .btn-approve:hover { background: #15803d; }
+    /* Nav */
+    .l-nav {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 48px;
+    }
+    @media (max-width: 600px) { .l-nav { padding: 20px 24px; } }
+    .l-logo {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+    .l-nav-links { display: flex; gap: 10px; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 18px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+      font-family: inherit;
+    }
+    .btn-ghost:hover { color: var(--text); border-color: #444; }
+    .btn-solid {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      font-family: inherit;
+    }
+    .btn-solid:hover { background: var(--accent-h); }
 
-    .scenes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 20px; }
-    .scene-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; overflow: hidden; }
-    .scene-card.approved { border-color: #166534; }
-    .scene-card img { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #111; }
-    .scene-card .placeholder { width: 100%; aspect-ratio: 16/9; background: #111; display: flex; align-items: center; justify-content: center; color: #444; font-size: 13px; }
-    .scene-info { padding: 12px; }
-    .scene-number { font-size: 12px; color: #666; margin-bottom: 4px; }
-    .scene-desc { font-size: 13px; margin-bottom: 8px; line-height: 1.4; }
-    .scene-subtitle { font-size: 12px; color: #888; font-style: italic; margin-bottom: 8px; }
-    .scene-prompt { font-size: 11px; color: #555; margin-bottom: 10px; word-break: break-word; }
-    .scene-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    /* Hero */
+    .l-hero {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 72px 24px 56px;
+    }
+    .l-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(37,99,235,0.1);
+      border: 1px solid rgba(37,99,235,0.22);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 13px;
+      color: #93c5fd;
+      margin-bottom: 28px;
+      animation: fadeUp 0.5s ease both;
+    }
+    .l-badge-dot {
+      width: 6px; height: 6px;
+      background: #3b82f6;
+      border-radius: 50%;
+      animation: pulse 2s ease infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .l-hero h1 {
+      font-size: clamp(36px, 6vw, 74px);
+      font-weight: 800;
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      margin-bottom: 20px;
+      animation: fadeUp 0.5s ease 0.08s both;
+    }
+    .l-hero h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .l-sub {
+      font-size: clamp(15px, 2.2vw, 19px);
+      color: var(--muted);
+      max-width: 540px;
+      margin: 0 auto 40px;
+      line-height: 1.65;
+      animation: fadeUp 0.5s ease 0.16s both;
+    }
+    .l-hero-btns {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      animation: fadeUp 0.5s ease 0.24s both;
+    }
+    .btn-cta {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 14px 28px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.12s;
+      font-family: inherit;
+    }
+    .btn-cta:hover { background: var(--accent-h); transform: translateY(-1px); }
+    .btn-cta-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 28px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.12s;
+      font-family: inherit;
+    }
+    .btn-cta-ghost:hover { border-color: #555; transform: translateY(-1px); }
 
-    .status-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
-    .status-pending { background: #333; color: #888; }
-    .status-generating { background: #92400e; color: #fbbf24; }
-    .status-generating_videos { background: #92400e; color: #fbbf24; }
-    .status-rendering { background: #92400e; color: #fbbf24; }
-    .status-done { background: #1e3a5f; color: #60a5fa; }
-    .status-approved { background: #166534; color: #4ade80; }
-    .status-videos_ready { background: #1e3a5f; color: #60a5fa; }
-    .status-rendered { background: #166534; color: #4ade80; }
-    .status-error { background: #7f1d1d; color: #fca5a5; }
+    /* Features */
+    .l-section {
+      position: relative;
+      z-index: 10;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px 72px;
+      animation: fadeUp 0.5s ease 0.32s both;
+    }
+    .l-section-label {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: #444;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 40px;
+    }
+    .l-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+    }
+    .l-card {
+      background: rgba(26,26,26,0.55);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+      backdrop-filter: blur(12px);
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .l-card:hover { border-color: #3a3a3a; transform: translateY(-2px); }
+    .l-card-num {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.08em;
+      margin-bottom: 12px;
+    }
+    .l-card h3 { font-size: 17px; font-weight: 600; margin-bottom: 8px; }
+    .l-card p { font-size: 14px; color: var(--muted); line-height: 1.6; }
 
-    .error-msg { font-size: 12px; color: #fca5a5; background: #2a1515; padding: 6px 8px; border-radius: 4px; margin-bottom: 8px; }
+    /* Modes */
+    .l-grid-4 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 12px;
+    }
+    .l-mode {
+      background: rgba(26,26,26,0.35);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px 20px;
+      transition: border-color 0.2s;
+    }
+    .l-mode:hover { border-color: #3a3a3a; }
+    .l-mode-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .l-mode-meta { font-size: 12px; color: #3b82f6; margin-bottom: 8px; font-weight: 500; }
+    .l-mode-desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
 
-    .loading { display: inline-block; width: 16px; height: 16px; border: 2px solid #444; border-top-color: #4f46e5; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    /* Footer */
+    .l-footer {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 0 24px 48px;
+      font-size: 13px;
+      color: #333;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== Auth screens (Login + Register) ===== */
+    .auth-view {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      position: relative;
+    }
+    .auth-back {
+      position: fixed;
+      top: 24px;
+      left: 28px;
+      z-index: 20;
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: inherit;
+      padding: 6px 0;
+      transition: color 0.15s;
+    }
+    .auth-back:hover { color: var(--text); }
+    .auth-card {
+      width: 100%;
+      max-width: 400px;
+      background: rgba(22,22,22,0.85);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 38px 36px;
+      backdrop-filter: blur(24px);
+      position: relative;
+      z-index: 10;
+      animation: fadeUp 0.4s ease both;
+    }
+    .auth-logo { font-size: 17px; font-weight: 700; margin-bottom: 20px; color: var(--muted); }
+    .auth-title { font-size: 24px; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 5px; }
+    .auth-subtitle { font-size: 14px; color: var(--muted); margin-bottom: 28px; }
+    .auth-field { margin-bottom: 16px; }
+    .auth-field label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 6px; }
+    .auth-field input {
+      width: 100%;
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      color: var(--text);
+      padding: 11px 14px;
+      font-size: 14px;
+      outline: none;
+      font-family: inherit;
+      transition: border-color 0.15s;
+    }
+    .auth-field input:focus { border-color: #3b5fc0; }
+    .auth-submit {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 4px;
+      transition: background 0.15s;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .auth-submit:hover { background: var(--accent-h); }
+    .auth-submit:disabled { opacity: 0.55; cursor: not-allowed; }
+    .auth-error {
+      color: #fca5a5;
+      font-size: 13px;
+      margin-bottom: 10px;
+      min-height: 18px;
+      line-height: 1.4;
+    }
+    .auth-switch { text-align: center; margin-top: 20px; font-size: 13px; color: var(--muted); }
+    .auth-link { color: var(--accent); cursor: pointer; }
+    .auth-link:hover { text-decoration: underline; }
+
+    /* 6-digit code input */
+    .code-inputs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      justify-content: center;
+    }
+    .code-input {
+      width: 50px;
+      height: 58px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: 700;
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: 'Courier New', monospace;
+      caret-color: transparent;
+    }
+    .code-input:focus { border-color: #3b5fc0; }
+    .code-hint {
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+    .code-resend {
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 14px;
+    }
+
+    /* Loading spinner */
+    .loading {
+      display: inline-block;
+      width: 13px; height: 13px;
+      border: 2px solid rgba(255,255,255,0.25);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .error { color: #ef4444; font-size: 13px; margin-top: 8px; }
-    .empty { color: #555; text-align: center; padding: 40px; }
+    /* ===== App view ===== */
+    #view-app { display: flex; min-height: 100vh; }
 
-    .prompt-edit { width: 100%; background: #111; border: 1px solid #333; border-radius: 4px; color: #ccc; padding: 6px; font-size: 11px; margin-bottom: 6px; resize: vertical; height: 60px; display: none; }
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width 300ms ease, border-color 300ms ease;
+      overflow: hidden;
+    }
+    .sidebar.collapsed { width: 0; border-color: transparent; }
+
+    .sidebar-header {
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      width: 260px;
+      flex-shrink: 0;
+    }
+    .sidebar-toggle {
+      width: 32px; height: 32px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+      transition: color 0.15s, background 0.15s;
+    }
+    .sidebar-toggle:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+    .new-project-btn {
+      flex: 1;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 7px 10px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+      font-family: inherit;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .new-project-btn:hover { background: var(--accent-h); }
+
+    .sidebar-projects {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      width: 260px;
+    }
+    .sidebar-empty { color: #444; font-size: 13px; padding: 20px 12px; line-height: 1.6; }
+    .sidebar-section-label {
+      font-size: 11px;
+      color: #444;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 8px 8px 4px;
+    }
+    .project-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 10px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: background 0.15s;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .project-item:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+    .project-item.active { background: rgba(255,255,255,0.07); color: var(--text); }
+    .project-item-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .project-item-menu {
+      width: 24px; height: 24px;
+      background: transparent; border: none;
+      color: #555; cursor: pointer;
+      border-radius: 4px; font-size: 15px;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.15s, background 0.15s;
+      flex-shrink: 0;
+    }
+    .project-item:hover .project-item-menu { opacity: 1; }
+    .project-item-menu:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+    .project-item-input {
+      background: transparent; border: none; outline: none;
+      color: var(--text); font: inherit; width: 100%; font-size: 13px;
+    }
+
+    .sidebar-footer {
+      padding: 12px;
+      border-top: 1px solid var(--border);
+      width: 260px;
+      flex-shrink: 0;
+    }
+    .logout-btn {
+      width: 100%;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      padding: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .logout-btn:hover { color: var(--text); border-color: #3a3a3a; }
+
+    /* Sidebar open toggle */
+    .sidebar-open-toggle {
+      position: fixed;
+      top: 12px; left: 12px;
+      z-index: 100;
+      width: 36px; height: 36px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      transition: color 0.15s;
+    }
+    .sidebar.collapsed ~ .sidebar-open-toggle { display: flex; }
+
+    /* Context menu */
+    .context-menu {
+      position: fixed;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px;
+      z-index: 1000;
+      min-width: 160px;
+      display: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .context-menu.visible { display: block; }
+    .context-menu-item {
+      padding: 8px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+      transition: background 0.1s;
+    }
+    .context-menu-item:hover { background: rgba(255,255,255,0.06); }
+    .context-menu-item.danger { color: var(--danger); }
+    .context-menu-item.danger:hover { background: rgba(239,68,68,0.08); }
+
+    /* Main area */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+    }
+    .main-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 32px;
+    }
+
+    /* Progress steps */
+    .progress-steps {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 24px;
+    }
+    .progress-step { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .progress-dot {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: #555;
+    }
+    .progress-dot.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .progress-dot.done { background: rgba(34,197,94,0.15); border-color: rgba(34,197,94,0.3); color: var(--success); }
+    .progress-label { font-size: 11px; color: #555; white-space: nowrap; }
+    .progress-label.active { color: var(--text); }
+    .progress-connector {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+      margin-bottom: 16px;
+      min-width: 24px;
+    }
+
+    /* Welcome screen */
+    .welcome-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 60vh;
+      text-align: center;
+      gap: 14px;
+    }
+    .welcome-logo { font-size: 32px; font-weight: 800; letter-spacing: -0.04em; }
+    .welcome-subtitle { font-size: 15px; color: var(--muted); max-width: 380px; line-height: 1.6; }
+    .welcome-btn {
+      margin-top: 8px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      font-family: inherit;
+    }
+    .welcome-btn:hover { background: var(--accent-h); }
+    .welcome-steps {
+      display: flex;
+      gap: 28px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .welcome-step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .welcome-step-num {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+    }
+
+    /* Buttons */
+    .btn { padding: 8px 14px; border-radius: 7px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: background 0.15s, opacity 0.15s; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-h); }
+    .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover:not(:disabled) { background: rgba(255,255,255,0.05); }
+    .btn-approve { background: rgba(34,197,94,0.12); color: var(--success); border: 1px solid rgba(34,197,94,0.2); }
+    .btn-approve:hover { background: rgba(34,197,94,0.2); }
+    .btn-danger { background: rgba(239,68,68,0.1); color: var(--danger); border: none; border-radius: 7px; padding: 8px 14px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+    .btn-danger:hover { background: rgba(239,68,68,0.18); }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+    /* Forms */
+    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .form-group label { font-size: 13px; color: var(--muted); }
+    .form-group textarea, .form-group select, .form-group input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 10px 12px;
+      font-size: 13px;
+      outline: none;
+      font-family: inherit;
+      transition: border-color 0.15s;
+    }
+    .form-group textarea { resize: vertical; min-height: 100px; }
+    .form-group textarea:focus, .form-group select:focus, .form-group input:focus { border-color: var(--accent); }
+    .field-hint { font-size: 12px; color: #555; }
+    .mode-note { font-size: 12px; color: var(--muted); background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 7px; padding: 8px 12px; margin-bottom: 12px; line-height: 1.5; }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 500;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .modal-overlay.visible { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-title { font-size: 17px; font-weight: 600; margin-bottom: 20px; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+    .btn-cancel { background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 7px; padding: 8px 14px; font-size: 13px; cursor: pointer; font-family: inherit; }
+    .btn-cancel:hover { color: var(--text); }
+
+    /* Project view */
+    .project-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+    .project-header h2 { font-size: 20px; font-weight: 700; }
+    #projectScenario { font-size: 13px; color: var(--muted); margin-bottom: 24px; line-height: 1.6; max-width: 720px; }
+    .project-actions { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+
+    /* Status badges */
+    .status-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+    .status-pending { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+    .status-scenes_ready { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+    .status-generating { background: rgba(234,179,8,0.1); color: #eab308; border: 1px solid rgba(234,179,8,0.2); }
+    .status-generating_videos { background: rgba(234,179,8,0.1); color: #eab308; border: 1px solid rgba(234,179,8,0.2); }
+    .status-rendering { background: rgba(234,179,8,0.1); color: #eab308; border: 1px solid rgba(234,179,8,0.2); }
+    .status-done { background: rgba(37,99,235,0.1); color: #60a5fa; border: 1px solid rgba(37,99,235,0.2); }
+    .status-approved { background: rgba(34,197,94,0.1); color: var(--success); border: 1px solid rgba(34,197,94,0.2); }
+    .status-videos_ready { background: rgba(37,99,235,0.1); color: #60a5fa; border: 1px solid rgba(37,99,235,0.2); }
+    .status-rendered { background: rgba(34,197,94,0.1); color: var(--success); border: 1px solid rgba(34,197,94,0.2); }
+    .status-error { background: rgba(239,68,68,0.1); color: #fca5a5; border: 1px solid rgba(239,68,68,0.2); }
+
+    .error-msg { font-size: 12px; color: #fca5a5; background: rgba(239,68,68,0.08); padding: 6px 10px; border-radius: 6px; margin-bottom: 6px; line-height: 1.4; }
+    .error { color: var(--danger); font-size: 13px; margin-top: 8px; }
+    .empty { color: #555; text-align: center; padding: 40px; font-size: 14px; }
+
+    /* Scenes grid */
+    .scenes-grid { display: flex; overflow-x: auto; gap: 12px; padding-bottom: 12px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+    .scenes-grid::-webkit-scrollbar { height: 4px; }
+    .scenes-grid::-webkit-scrollbar-track { background: transparent; }
+    .scenes-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .scene-card { flex: 0 0 210px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; transition: border-color 0.2s; scroll-snap-align: start; display: flex; flex-direction: column; }
+    .scene-card:hover { border-color: #3a3a3a; }
+    .scene-card.approved { border-color: rgba(34,197,94,0.35); }
+    .scene-card img { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: var(--bg); display: block; }
+    .scene-card .placeholder { width: 100%; aspect-ratio: 16/9; background: var(--bg); display: flex; align-items: center; justify-content: center; color: #444; font-size: 12px; }
+
+    .scene-card.transition-card { flex: 0 0 72px; background: transparent; border: 1px dashed var(--border); justify-content: center; align-items: center; gap: 6px; }
+    .transition-arrow { font-size: 22px; color: var(--muted); }
+    .transition-label { font-size: 10px; color: #555; text-align: center; line-height: 1.4; }
+
+    .scene-info { padding: 10px; flex: 1; display: flex; flex-direction: column; }
+    .scene-number { font-size: 11px; color: var(--muted); margin-bottom: 4px; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    .scene-desc { font-size: 12px; margin-bottom: 6px; line-height: 1.4; color: var(--text); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; flex: 1; }
+    .scene-subtitle { font-size: 11px; color: var(--muted); font-style: italic; margin-bottom: 6px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .scene-prompt { font-size: 10px; color: #444; margin-bottom: 6px; word-break: break-word; line-height: 1.3; cursor: pointer; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .scene-prompt:hover { color: #666; }
+    .scene-actions { display: flex; gap: 4px; flex-wrap: wrap; margin-top: auto; padding-top: 6px; }
+
+    .prompt-edit { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 6px 8px; font-size: 11px; margin-bottom: 6px; resize: vertical; height: 54px; display: none; font-family: inherit; }
     .prompt-edit.visible { display: block; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
   </style>
 </head>
 <body>
-  <div class="sidebar">
-    <h2>Проекты</h2>
-    <div id="projectList"><div class="empty" style="padding:20px;font-size:13px;">Нет проектов</div></div>
+
+<!-- ==================== LANDING ==================== -->
+<div id="view-landing">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <nav class="l-nav">
+    <div class="l-logo">AnimatAI</div>
+    <div class="l-nav-links">
+      <button class="btn-ghost" onclick="showView('login')">Войти</button>
+      <button class="btn-solid" onclick="showView('register')">Создать аккаунт</button>
+    </div>
+  </nav>
+
+  <section class="l-hero">
+    <div class="l-badge"><span class="l-badge-dot"></span>AI Animation Studio</div>
+    <h1>Сценарий<br>в <em>мультфильм</em></h1>
+    <p class="l-sub">Пишете историю — ИИ разбивает на сцены, рисует кадры, оживляет их и монтирует готовое видео с субтитрами.</p>
+    <div class="l-hero-btns">
+      <button class="btn-cta" onclick="showView('register')">Начать бесплатно →</button>
+      <button class="btn-cta-ghost" onclick="showView('login')">Войти в аккаунт</button>
+    </div>
+  </section>
+
+  <div class="l-section">
+    <div class="l-section-label">Как это работает</div>
+    <div class="l-grid-3">
+      <div class="l-card">
+        <div class="l-card-num">01</div>
+        <h3>Напишите сценарий</h3>
+        <p>Опишите историю в свободной форме — хоть абзац, хоть страница. ИИ сам разобьёт на сцены, напишет промпты и субтитры.</p>
+      </div>
+      <div class="l-card">
+        <div class="l-card-num">02</div>
+        <h3>Одобрите кадры</h3>
+        <p>ИИ генерирует изображение для каждой сцены. Просматривайте, редактируйте промпты и принимайте понравившиеся.</p>
+      </div>
+      <div class="l-card">
+        <div class="l-card-num">03</div>
+        <h3>Скачайте видео</h3>
+        <p>ИИ анимирует кадры, склеивает клипы и добавляет субтитры. Скачивайте MP4 — готово к публикации.</p>
+      </div>
+    </div>
   </div>
 
-  <div class="main">
-    <h1>AnimatAI</h1>
+  <div class="l-section" style="padding-bottom: 100px;">
+    <div class="l-section-label">Режимы</div>
+    <div class="l-grid-4">
+      <div class="l-mode">
+        <div class="l-mode-name">Free Trial</div>
+        <div class="l-mode-meta">2 сцены · ~10 сек</div>
+        <div class="l-mode-desc">Попробуйте бесплатно. Быстрый результат без ограничений по теме.</div>
+      </div>
+      <div class="l-mode">
+        <div class="l-mode-name">Standard</div>
+        <div class="l-mode-meta">до 20 сцен · 30–120 сек</div>
+        <div class="l-mode-desc">Полноценный мультфильм произвольной длины.</div>
+      </div>
+      <div class="l-mode">
+        <div class="l-mode-name">Pro</div>
+        <div class="l-mode-meta">3 сцены + переходы · ~25 сек</div>
+        <div class="l-mode-desc">Бесшовные морф-переходы между сценами.</div>
+      </div>
+      <div class="l-mode">
+        <div class="l-mode-name">Deluxe</div>
+        <div class="l-mode-meta">3 сцены · ~15 сек</div>
+        <div class="l-mode-desc">Цепочка кадров, ИИ-озвучка персонажей и субтитры.</div>
+      </div>
+    </div>
+  </div>
 
-    <div id="createForm">
+  <div class="l-footer">© 2026 AnimatAI</div>
+</div>
+
+<!-- ==================== LOGIN ==================== -->
+<div id="view-login" style="display:none;">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <button class="auth-back" onclick="showView('landing')">← Назад</button>
+  <div class="auth-view">
+    <div class="auth-card">
+      <div class="auth-logo">AnimatAI</div>
+      <div class="auth-title">С возвращением</div>
+      <div class="auth-subtitle">Войдите в аккаунт для продолжения</div>
+      <div class="auth-field">
+        <label>Email</label>
+        <input id="loginEmail" type="email" placeholder="you@example.com" autocomplete="email" onkeydown="if(event.key==='Enter')login()" />
+      </div>
+      <div class="auth-field" style="margin-bottom:20px;">
+        <label>Пароль</label>
+        <input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()" />
+      </div>
+      <div class="auth-error" id="loginError"></div>
+      <button class="auth-submit" id="loginBtn" onclick="login()">Войти</button>
+      <div class="auth-switch">Нет аккаунта? <span class="auth-link" onclick="showView('register')">Создать бесплатно</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== REGISTER ==================== -->
+<div id="view-register" style="display:none;">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <button class="auth-back" onclick="showView('landing')">← Назад</button>
+  <div class="auth-view">
+    <div class="auth-card">
+
+      <div class="auth-logo">AnimatAI</div>
+      <div class="auth-title">Создать аккаунт</div>
+      <div class="auth-subtitle">Бесплатно. Без кредитной карты.</div>
+      <div class="auth-field">
+        <label>Email</label>
+        <input id="regEmail" type="email" placeholder="you@example.com" autocomplete="email" />
+      </div>
+      <div class="auth-field">
+        <label>Имя пользователя</label>
+        <input id="regUsername" type="text" placeholder="username" autocomplete="username" />
+      </div>
+      <div class="auth-field" style="margin-bottom:20px;">
+        <label>Пароль <span style="color:#555;font-size:12px;">(минимум 8 символов)</span></label>
+        <input id="regPassword" type="password" placeholder="••••••••" autocomplete="new-password" onkeydown="if(event.key==='Enter')register()" />
+      </div>
+      <div class="auth-error" id="regError"></div>
+      <button class="auth-submit" id="regBtn" onclick="register()">Создать аккаунт →</button>
+      <div class="auth-switch">Уже есть аккаунт? <span class="auth-link" onclick="showView('login')">Войти</span></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ==================== APP ==================== -->
+<div id="view-app" style="display:none;">
+
+  <!-- Context menu -->
+  <div class="context-menu" id="contextMenu">
+    <div class="context-menu-item" onclick="renameProject()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+      Переименовать
+    </div>
+    <div class="context-menu-item danger" onclick="deleteProject()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      Удалить
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <button class="sidebar-toggle" onclick="toggleSidebar()" title="Свернуть">←</button>
+      <button class="new-project-btn" onclick="showCreateModal()">+ Новый мультфильм</button>
+    </div>
+    <div class="sidebar-projects" id="projectList">
+      <div class="sidebar-empty">Нет мультфильмов<br><span style="font-size:12px;">Создайте первый мультфильм</span></div>
+    </div>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="showApiKeysModal()" id="apiKeysBtn" style="margin-bottom:8px;">
+        <span id="apiKeysBtnIcon">🔑</span> API-ключи
+      </button>
+      <button class="logout-btn" onclick="logout()">Выйти</button>
+    </div>
+  </div>
+
+  <!-- Expand button when sidebar is collapsed -->
+  <button class="sidebar-open-toggle" id="sidebarOpenToggle" onclick="toggleSidebar()" title="Открыть меню">☰</button>
+
+  <!-- Main area -->
+  <div class="main">
+    <div class="main-content">
+
+      <!-- Welcome screen -->
+      <div id="welcomeScreen" class="welcome-screen">
+        <div class="welcome-logo">AnimatAI</div>
+        <div class="welcome-subtitle">Превратите сценарий в мультфильм за несколько кликов.</div>
+        <button class="welcome-btn" onclick="showCreateModal()">Создать мультфильм</button>
+        <div class="welcome-steps">
+          <div class="welcome-step"><div class="welcome-step-num">1</div><span>Напишите сценарий</span></div>
+          <div class="welcome-step"><div class="welcome-step-num">2</div><span>Одобрите кадры</span></div>
+          <div class="welcome-step"><div class="welcome-step-num">3</div><span>Скачайте видео</span></div>
+        </div>
+      </div>
+
+      <!-- Project view -->
+      <div id="projectView" style="display:none;">
+        <div id="progressBar" class="progress-steps"></div>
+        <div class="project-header">
+          <h2 id="projectTitle"></h2>
+          <span id="projectStatus" class="status-badge"></span>
+        </div>
+        <p id="projectScenario"></p>
+        <div class="project-actions">
+          <button class="btn btn-primary" id="generateBtn" onclick="generateImages()">Создать кадры</button>
+          <button class="btn btn-primary" id="videoBtn" style="display:none;" onclick="generateVideos()">Оживить сцены</button>
+          <button class="btn-danger" id="resetVideoBtn" style="display:none;" onclick="resetVideoGeneration()">Сбросить генерацию</button>
+          <button class="btn btn-primary" id="renderBtn" style="display:none;" onclick="renderFinalVideo()">Собрать видео</button>
+          <a class="btn btn-primary" id="downloadBtn" style="display:none;text-decoration:none;" href="#">⬇ Скачать видео</a>
+        </div>
+        <div id="generateError" class="error"></div>
+        <div id="scenesContainer" class="scenes-grid"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal: Create project -->
+  <div class="modal-overlay" id="createModal">
+    <div class="modal">
+      <div class="modal-title">Новый мультфильм</div>
       <div class="form-group">
         <label>Сценарий</label>
-        <textarea id="scenarioInput" placeholder="Опишите сценарий мультика..."></textarea>
+        <textarea id="scenarioInput" placeholder="Напишите историю — что происходит, кто герои, какая обстановка"></textarea>
+        <div class="field-hint">Чем подробнее, тем лучше результат</div>
       </div>
       <div class="form-group">
         <label>Режим</label>
         <select id="modeInput" onchange="toggleModeOptions()">
-          <option value="standard">Standard — быстрый, без переходов</option>
-          <option value="pro">Pro — бесшовные переходы (Kling v2.6, ~$2.50)</option>
-          <option value="deluxe">Deluxe — 3 сцены, озвучка EN, субтитры RU (~$2.55)</option>
+          <option value="freetrial">Free Trial — 2 сцены, быстрый результат</option>
+          <option value="standard">Standard — до 20 сцен</option>
+          <option value="pro">Pro — бесшовные переходы</option>
+          <option value="deluxe">Deluxe — озвучка и субтитры</option>
         </select>
       </div>
+      <div id="freetrialNote" class="mode-note">2 сцены по 5 секунд · субтитры · быстро</div>
+      <div id="proDurationNote" class="mode-note" style="display:none;">3 сцены + 2 перехода · бесшовное видео ~25с</div>
+      <div id="deluxeNote" class="mode-note" style="display:none;">3 клипа цепочкой · видео с озвучкой и субтитрами ~15с</div>
+      <div id="voiceGroup" class="mode-note" style="display:none;">Голоса назначаются автоматически на основе диалогов в сценарии</div>
       <div class="form-group">
         <label>Стиль</label>
         <select id="styleInput">
@@ -98,7 +1022,7 @@
           <option value="pixar">Pixar 3D</option>
         </select>
       </div>
-      <div class="form-group" id="durationGroup">
+      <div class="form-group" id="durationGroup" style="display:none;">
         <label>Длительность</label>
         <select id="durationInput">
           <option value="30">30 секунд (~5 сцен)</option>
@@ -106,84 +1030,376 @@
           <option value="120">2 минуты (~20 сцен)</option>
         </select>
       </div>
-      <div id="proDurationNote" style="display:none;font-size:12px;color:#888;margin-bottom:16px;">
-        Pro-режим: 3 сцены + 2 перехода = ~25 секунд бесшовного видео
-      </div>
-      <div id="deluxeNote" style="display:none;font-size:12px;color:#888;margin-bottom:16px;">
-        Deluxe: цепочка из 3 клипов по 5с = 15с бесшовного видео. Персонажи говорят на EN, субтитры RU.
-      </div>
-      <div id="voiceGroup" style="display:none;font-size:12px;color:#888;margin-bottom:16px;">
-        Голоса назначаются автоматически на основе диалогов в промпте (<<<voice_1>>>, <<<voice_2>>>).
-      </div>
-      <button class="btn btn-primary" id="createBtn" onclick="createProject()">Создать проект</button>
       <div id="createError" class="error"></div>
-    </div>
-
-    <div id="projectView" style="display:none;">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-        <h2 id="projectTitle" style="font-size:18px;"></h2>
-        <span id="projectStatus" class="status-badge"></span>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="hideCreateModal()">Отмена</button>
+        <button class="btn btn-primary" id="createBtn" onclick="createProject()">Создать</button>
       </div>
-      <p id="projectScenario" style="font-size:13px;color:#888;margin-bottom:16px;"></p>
-
-      <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-        <button class="btn btn-primary" id="generateBtn" onclick="generateImages()">Сгенерировать картинки</button>
-        <button class="btn btn-primary" id="videoBtn" style="display:none;" onclick="generateVideos()">Сгенерировать видео</button>
-        <button class="btn btn-sm" id="resetVideoBtn" style="display:none;background:#92400e;color:#fbbf24;" onclick="resetVideoGeneration()">Сбросить генерацию</button>
-        <button class="btn btn-primary" id="renderBtn" style="display:none;" onclick="renderFinalVideo()">Собрать финальное видео</button>
-        <a class="btn btn-primary" id="downloadBtn" style="display:none;text-decoration:none;" href="#">Скачать видео</a>
-        <button class="btn btn-secondary" onclick="showCreateForm()">+ Новый проект</button>
-        <button class="btn btn-sm" style="background:#7f1d1d;color:#fca5a5;" onclick="deleteCurrentProject()">Удалить проект</button>
-      </div>
-      <div id="generateError" class="error"></div>
-
-      <div id="scenesContainer" class="scenes-grid"></div>
     </div>
   </div>
 
-<script>
-let currentProjectId = null;
+  <!-- Modal: API Keys -->
+  <div class="modal-overlay" id="apiKeysModal" onclick="if(event.target===this&&hasApiKeys())hideApiKeysModal()">
+    <div class="modal" style="max-width:480px;">
+      <div class="modal-title">🔑 API-ключи для генерации</div>
 
-async function api(url, options = {}) {
-  const res = await fetch(url, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
+      <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:20px;">
+        AnimatAI использует ваши личные API-ключи для генерации изображений и видео.
+        Ключи хранятся только в вашем браузере и никуда не отправляются кроме соответствующих сервисов.
+      </p>
+
+      <!-- fal.ai -->
+      <div style="background:#111;border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;">fal.ai — изображения и видео</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6;">
+          1. Зайдите на <strong style="color:#aaa;">fal.ai</strong> → зарегистрируйтесь<br>
+          2. Перейдите в <strong style="color:#aaa;">Dashboard → API Keys</strong><br>
+          3. Нажмите <strong style="color:#aaa;">Add key</strong> и скопируйте ключ
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <input id="falKeyInput" type="password" placeholder="xxxxxxxx-xxxx-xxxx-xxxx:xxxxxxxxxxxxxxxx"
+            style="font-family:monospace;font-size:12px;" />
+        </div>
+      </div>
+
+      <!-- OpenRouter -->
+      <div style="background:#111;border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:6px;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;">OpenRouter — сценарий и изображения</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6;">
+          1. Зайдите на <strong style="color:#aaa;">openrouter.ai</strong> → зарегистрируйтесь<br>
+          2. Перейдите в <strong style="color:#aaa;">Keys → Create Key</strong><br>
+          3. Скопируйте ключ (начинается с <strong style="color:#aaa;">sk-or-</strong>)
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <input id="openrouterKeyInput" type="password" placeholder="sk-or-v1-..."
+            style="font-family:monospace;font-size:12px;" />
+        </div>
+      </div>
+
+      <div id="apiKeysError" class="error" style="margin-top:10px;"></div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="hideApiKeysModal()" id="apiKeysCancelBtn">Отмена</button>
+        <button class="btn btn-primary" onclick="saveApiKeys()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /view-app -->
+
+<script>
+const STATUS_LABELS = {
+  pending: 'Ожидание', scenes_ready: 'Кадры созданы', generating: 'Создание кадров',
+  generating_videos: 'Создание видео...', rendering: 'Сборка', done: 'Готово',
+  approved: 'Принято', videos_ready: 'Видео готово!', rendered: 'Финал готов', error: 'Ошибка',
+};
+function statusLabel(s) { return STATUS_LABELS[s] || s; }
+
+let currentProjectId = null;
+let currentProject = null;
+let contextMenuProjectId = null;
+
+// ===== Auth state =====
+let accessToken = localStorage.getItem('accessToken');
+let refreshTokenStr = localStorage.getItem('refreshToken');
+
+// ===== API Keys =====
+let falKey = localStorage.getItem('falKey') || '';
+let openrouterKey = localStorage.getItem('openrouterKey') || '';
+
+function hasApiKeys() { return !!(falKey && openrouterKey); }
+
+// ===== View management =====
+function showView(name) {
+  ['landing', 'login', 'register', 'app'].forEach(v => {
+    const el = document.getElementById(`view-${v}`);
+    el.style.display = v === name ? (v === 'app' ? 'flex' : 'block') : 'none';
   });
+  if (name === 'register') { document.getElementById('regError').textContent = ''; }
+  if (name === 'login') { document.getElementById('loginError').textContent = ''; }
+}
+
+// ===== Auth =====
+async function login() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+  errEl.textContent = '';
+  if (!email || !password) { errEl.textContent = 'Введите email и пароль'; return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading"></span> Вход...';
+  try {
+    const r = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Ошибка входа');
+    setTokens(data.accessToken, data.refreshToken);
+    showView('app');
+    loadProjects();
+  } catch (e) {
+    errEl.textContent = e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Войти';
+  }
+}
+
+async function register() {
+  const email = document.getElementById('regEmail').value.trim();
+  const username = document.getElementById('regUsername').value.trim();
+  const password = document.getElementById('regPassword').value;
+  const errEl = document.getElementById('regError');
+  const btn = document.getElementById('regBtn');
+
+  errEl.textContent = '';
+  if (!email) { errEl.textContent = 'Введите email'; return; }
+  if (!username) { errEl.textContent = 'Введите имя пользователя'; return; }
+  if (password.length < 8) { errEl.textContent = 'Пароль минимум 8 символов'; return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading"></span> Создание аккаунта...';
+  try {
+    const r = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, username, password }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Ошибка регистрации');
+    setTokens(data.accessToken, data.refreshToken);
+    showView('app');
+    loadProjects();
+  } catch (e) {
+    errEl.textContent = e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Создать аккаунт →';
+  }
+}
+
+async function logout() {
+  try {
+    if (refreshTokenStr) {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+        body: JSON.stringify({ refreshToken: refreshTokenStr }),
+      });
+    }
+  } catch {}
+  clearTokens();
+  showWelcome();
+  showView('landing');
+}
+
+function setTokens(at, rt) {
+  accessToken = at; refreshTokenStr = rt;
+  localStorage.setItem('accessToken', at);
+  localStorage.setItem('refreshToken', rt);
+}
+function clearTokens() {
+  accessToken = null; refreshTokenStr = null;
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
+}
+
+async function tryRefreshToken() {
+  if (!refreshTokenStr) return false;
+  try {
+    const r = await fetch('/api/auth/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken: refreshTokenStr }),
+    });
+    if (!r.ok) return false;
+    const data = await r.json();
+    setTokens(data.accessToken, data.refreshToken);
+    return true;
+  } catch { return false; }
+}
+
+// ===== API helper =====
+async function api(url, options = {}) {
+  const makeHeaders = () => {
+    const h = { 'Content-Type': 'application/json' };
+    if (accessToken) h['Authorization'] = `Bearer ${accessToken}`;
+    if (falKey) h['X-Fal-Key'] = falKey;
+    if (openrouterKey) h['X-Openrouter-Key'] = openrouterKey;
+    return h;
+  };
+  const res = await fetch(url, { ...options, headers: makeHeaders() });
+
+  if (res.status === 401) {
+    const refreshed = await tryRefreshToken();
+    if (refreshed) {
+      const res2 = await fetch(url, { ...options, headers: makeHeaders() });
+      const data2 = await res2.json();
+      if (!res2.ok) throw new Error(data2.error || 'Request failed');
+      return data2;
+    } else {
+      clearTokens();
+      showView('landing');
+      throw new Error('Unauthorized');
+    }
+  }
+
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Request failed');
   return data;
 }
 
-function showCreateForm() {
-  document.getElementById('createForm').style.display = 'block';
+// ===== Sidebar =====
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const isCollapsed = sidebar.classList.toggle('collapsed');
+  localStorage.setItem('sidebarOpen', isCollapsed ? 'false' : 'true');
+}
+
+function updateApiKeysBtnState() {
+  const icon = document.getElementById('apiKeysBtnIcon');
+  if (icon) icon.textContent = hasApiKeys() ? '✅' : '🔑';
+}
+
+// ===== Welcome / navigation =====
+function showWelcome() {
+  document.getElementById('welcomeScreen').style.display = 'flex';
   document.getElementById('projectView').style.display = 'none';
-  currentProjectId = null;
+  currentProjectId = null; currentProject = null;
   document.querySelectorAll('.project-item').forEach(el => el.classList.remove('active'));
 }
 
+// ===== Modal =====
+function showCreateModal() {
+  if (!hasApiKeys()) { showApiKeysModal(true); return; }
+  document.getElementById('createModal').classList.add('visible');
+  document.getElementById('createError').textContent = '';
+  document.getElementById('scenarioInput').focus();
+}
+function hideCreateModal() { document.getElementById('createModal').classList.remove('visible'); }
+
+// ===== API Keys Modal =====
+let _apiKeysOpenedForCreate = false;
+
+function showApiKeysModal(forCreate = false) {
+  _apiKeysOpenedForCreate = forCreate;
+  document.getElementById('falKeyInput').value = falKey;
+  document.getElementById('openrouterKeyInput').value = openrouterKey;
+  document.getElementById('apiKeysError').textContent = '';
+  document.getElementById('apiKeysCancelBtn').style.display = hasApiKeys() ? '' : 'none';
+  document.getElementById('apiKeysModal').classList.add('visible');
+}
+
+function hideApiKeysModal() {
+  document.getElementById('apiKeysModal').classList.remove('visible');
+}
+
+function saveApiKeys() {
+  const fk = document.getElementById('falKeyInput').value.trim();
+  const ok = document.getElementById('openrouterKeyInput').value.trim();
+  const errEl = document.getElementById('apiKeysError');
+
+  if (!fk) { errEl.textContent = 'Введите fal.ai ключ'; return; }
+  if (!ok) { errEl.textContent = 'Введите OpenRouter ключ'; return; }
+
+  falKey = fk;
+  openrouterKey = ok;
+  localStorage.setItem('falKey', fk);
+  localStorage.setItem('openrouterKey', ok);
+
+  hideApiKeysModal();
+  updateApiKeysBtnState();
+  if (_apiKeysOpenedForCreate) showCreateModal();
+}
+
+// ===== Context menu =====
+function showProjectMenu(projectId, event) {
+  event.stopPropagation();
+  contextMenuProjectId = projectId;
+  const menu = document.getElementById('contextMenu');
+  menu.style.left = event.clientX + 'px';
+  menu.style.top = event.clientY + 'px';
+  menu.classList.add('visible');
+}
+function hideContextMenu() {
+  document.getElementById('contextMenu').classList.remove('visible');
+  contextMenuProjectId = null;
+}
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.context-menu') && !e.target.closest('.project-item-menu')) hideContextMenu();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { hideContextMenu(); hideCreateModal(); if (hasApiKeys()) hideApiKeysModal(); }
+});
+document.getElementById('createModal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) hideCreateModal();
+});
+
+function renameProject() {
+  const projectId = contextMenuProjectId;
+  hideContextMenu();
+  if (!projectId) return;
+  const item = document.querySelector(`[data-project-id="${projectId}"] .project-item-text`);
+  if (!item) return;
+  const currentName = item.textContent.trim();
+  item.innerHTML = `<input class="project-item-input" value="${currentName.replace(/"/g, '&quot;')}" />`;
+  const input = item.querySelector('input');
+  input.focus(); input.select();
+  const finish = async () => {
+    const newName = input.value.trim();
+    if (newName && newName !== currentName) {
+      try { await api(`/api/projects/${projectId}`, { method: 'PATCH', body: JSON.stringify({ name: newName }) }); }
+      catch {}
+    }
+    await loadProjects();
+  };
+  input.addEventListener('blur', finish);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { input.value = currentName; input.blur(); }
+  });
+}
+
+async function deleteProject() {
+  const projectId = contextMenuProjectId;
+  hideContextMenu();
+  if (!projectId) return;
+  if (!confirm('Удалить мультфильм и все файлы?')) return;
+  try {
+    await api(`/api/projects/${projectId}`, { method: 'DELETE' });
+    if (currentProjectId === projectId) showWelcome();
+    await loadProjects();
+  } catch (e) { alert('Ошибка: ' + e.message); }
+}
+
+// ===== Projects list =====
 async function loadProjects() {
+  updateApiKeysBtnState();
   try {
     const projects = await api('/api/projects');
     const list = document.getElementById('projectList');
     if (projects.length === 0) {
-      list.innerHTML = '<div class="empty" style="padding:20px;font-size:13px;">Нет проектов</div>';
+      list.innerHTML = '<div class="sidebar-empty">Нет мультфильмов<br><span style="font-size:12px;">Создайте первый мультфильм</span></div>';
       return;
     }
-    list.innerHTML = projects.map(p => `
-      <div class="project-item ${p.id === currentProjectId ? 'active' : ''}"
-           onclick="loadProject('${p.id}')">
-        ${p.scenario.slice(0, 40)}${p.scenario.length > 40 ? '...' : ''}
-        <div class="project-status">${p.duration}с &middot; ${{pixar:'3D',cartoon:'2D Cartoon',anime:'2D Anime'}[p.style]||p.style} &middot; ${p.mode === 'deluxe' ? 'DLX' : p.mode === 'pro' ? 'PRO' : 'STD'} &middot; ${p.status}</div>
-      </div>
-    `).join('');
-  } catch (e) {
-    console.error(e);
-  }
+    list.innerHTML = '<div class="sidebar-section-label">Мои мультфильмы</div>' + projects.map(p => {
+      const name = (p.name || p.scenario || '').slice(0, 28) + ((p.name || p.scenario || '').length > 28 ? '...' : '');
+      return `
+        <div class="project-item ${p.id === currentProjectId ? 'active' : ''}" data-project-id="${p.id}" onclick="loadProject('${p.id}')">
+          <span class="project-item-text">${name}</span>
+          <button class="project-item-menu" onclick="showProjectMenu('${p.id}', event)" title="Меню">&#8942;</button>
+        </div>`;
+    }).join('');
+  } catch (e) { console.error(e); }
 }
 
 function toggleModeOptions() {
   const mode = document.getElementById('modeInput').value;
-  document.getElementById('durationGroup').style.display = (mode === 'pro' || mode === 'deluxe') ? 'none' : '';
+  document.getElementById('durationGroup').style.display = (mode === 'pro' || mode === 'deluxe' || mode === 'freetrial') ? 'none' : '';
+  document.getElementById('freetrialNote').style.display = mode === 'freetrial' ? '' : 'none';
   document.getElementById('proDurationNote').style.display = mode === 'pro' ? '' : 'none';
   document.getElementById('deluxeNote').style.display = mode === 'deluxe' ? '' : 'none';
   document.getElementById('voiceGroup').style.display = mode === 'deluxe' ? '' : 'none';
@@ -192,25 +1408,18 @@ function toggleModeOptions() {
 async function createProject() {
   const scenario = document.getElementById('scenarioInput').value.trim();
   const mode = document.getElementById('modeInput').value;
-  const duration = (mode === 'pro' || mode === 'deluxe') ? 15 : parseInt(document.getElementById('durationInput').value);
+  const duration = (mode === 'pro' || mode === 'deluxe') ? 15 : mode === 'freetrial' ? 10 : parseInt(document.getElementById('durationInput').value);
   const style = document.getElementById('styleInput').value;
   const errEl = document.getElementById('createError');
   const btn = document.getElementById('createBtn');
   errEl.textContent = '';
-
   if (!scenario) { errEl.textContent = 'Введите сценарий'; return; }
-
-  const body = { scenario, duration, style, mode };
-
   btn.disabled = true;
   btn.innerHTML = '<span class="loading"></span> Создание...';
-
   try {
-    const project = await api('/api/projects', {
-      method: 'POST',
-      body: JSON.stringify(body),
-    });
+    const project = await api('/api/projects', { method: 'POST', body: JSON.stringify({ scenario, duration, style, mode }) });
     currentProjectId = project.id;
+    hideCreateModal();
     await loadProjects();
     showProject(project);
     document.getElementById('scenarioInput').value = '';
@@ -218,7 +1427,7 @@ async function createProject() {
     errEl.textContent = e.message;
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Создать проект';
+    btn.textContent = 'Создать';
   }
 }
 
@@ -228,21 +1437,40 @@ async function loadProject(id) {
     const project = await api(`/api/projects/${id}`);
     showProject(project);
     loadProjects();
-  } catch (e) {
-    console.error(e);
-  }
+  } catch (e) { console.error(e); }
 }
 
-let currentProject = null;
+// ===== Progress bar =====
+function renderProgressBar(project) {
+  const steps = [
+    { label: 'Сценарий', statuses: ['created', 'scenes_ready'] },
+    { label: 'Кадры',    statuses: ['generating', 'done'] },
+    { label: 'Видео',    statuses: ['generating_videos', 'videos_ready'] },
+    { label: 'Готово',   statuses: ['rendering', 'rendered'] },
+  ];
+  const activeStep = steps.findIndex(s => s.statuses.includes(project.status));
+  const currentStep = activeStep === -1 ? 0 : activeStep;
+  document.getElementById('progressBar').innerHTML = steps.map((step, i) => {
+    const isDone = i < currentStep;
+    const isActive = i === currentStep;
+    const dotClass = isDone ? 'done' : isActive ? 'active' : 'pending';
+    const dotContent = isDone ? '✓' : (i + 1);
+    const connector = i < steps.length - 1 ? '<div class="progress-connector"></div>' : '';
+    return `<div class="progress-step">
+      <div class="progress-dot ${dotClass}">${dotContent}</div>
+      <span class="progress-label ${isActive ? 'active' : ''}">${step.label}</span>
+    </div>${connector}`;
+  }).join('');
+}
 
 function showProject(project) {
   currentProject = project;
-  document.getElementById('createForm').style.display = 'none';
+  document.getElementById('welcomeScreen').style.display = 'none';
   document.getElementById('projectView').style.display = 'block';
-
-  const modeLabel = project.mode === 'deluxe' ? 'Deluxe' : project.mode === 'pro' ? 'Pro' : 'Standard';
-  document.getElementById('projectTitle').textContent = `Проект (${project.duration}с, ${modeLabel})`;
-  document.getElementById('projectStatus').textContent = project.status;
+  renderProgressBar(project);
+  const modeLabel = project.mode === 'deluxe' ? 'Deluxe' : project.mode === 'pro' ? 'Pro' : project.mode === 'freetrial' ? 'Free Trial' : 'Standard';
+  document.getElementById('projectTitle').textContent = `${modeLabel} · ${project.duration}с`;
+  document.getElementById('projectStatus').textContent = statusLabel(project.status);
   document.getElementById('projectStatus').className = `status-badge status-${project.status}`;
   document.getElementById('projectScenario').textContent = project.scenario;
   document.getElementById('generateError').textContent = '';
@@ -255,191 +1483,122 @@ function showProject(project) {
 
   const canGenerate = project.status === 'scenes_ready' || project.status === 'done';
   document.getElementById('generateBtn').disabled = !canGenerate;
-  // In deluxe, generate button creates only scene 1 image
-  document.getElementById('generateBtn').textContent = isDeluxe ? 'Сгенерировать изображение (сцена 1)' : 'Сгенерировать картинки';
+  document.getElementById('generateBtn').textContent = isDeluxe ? 'Создать кадр (сцена 1)' : 'Создать кадры';
 
-  // Hide standard video button in deluxe (step-by-step instead)
   const videoBtn = document.getElementById('videoBtn');
   videoBtn.style.display = (!isDeluxe && allApproved) ? '' : 'none';
   videoBtn.disabled = project.status === 'generating_videos';
   if (project.status === 'generating_videos') {
-    videoBtn.innerHTML = '<span class="loading"></span> Генерация видео...';
-  } else {
-    videoBtn.textContent = 'Сгенерировать видео';
-  }
+    videoBtn.innerHTML = '<span class="loading"></span> Создание видео...';
+  } else { videoBtn.textContent = 'Оживить сцены'; }
 
-  // Show reset button when stuck in generating_videos
   document.getElementById('resetVideoBtn').style.display = project.status === 'generating_videos' ? '' : 'none';
 
-  // Show "Render" button when all clips ready
   const renderBtn = document.getElementById('renderBtn');
   renderBtn.style.display = allVideosDone ? '' : 'none';
   renderBtn.disabled = project.status === 'rendering';
   if (project.status === 'rendering') {
     renderBtn.innerHTML = '<span class="loading"></span> Сборка...';
-  } else {
-    renderBtn.textContent = 'Собрать финальное видео';
-  }
+  } else { renderBtn.textContent = 'Собрать видео'; }
 
-  // Show download button when rendered
   const downloadBtn = document.getElementById('downloadBtn');
   downloadBtn.style.display = project.final_video_path ? '' : 'none';
   downloadBtn.href = `/api/projects/${project.id}/download`;
 
-  if (isDeluxe) {
-    renderScenesDeluxe(scenes, project);
-  } else {
-    renderScenes(scenes);
-  }
+  if (isDeluxe) renderScenesDeluxe(scenes, project);
+  else renderScenes(scenes);
 }
 
 function renderScenes(scenes) {
   const container = document.getElementById('scenesContainer');
-  if (scenes.length === 0) {
-    container.innerHTML = '<div class="empty">Нет сцен</div>';
-    return;
-  }
-
+  if (scenes.length === 0) { container.innerHTML = '<div class="empty">Кадры появятся после генерации</div>'; return; }
   container.innerHTML = scenes.map(s => {
     const isTransition = s.scene_type === 'transition';
-
     if (isTransition) {
-      return `
-        <div class="scene-card" style="border-color:#92400e;opacity:0.85;">
-          <div class="placeholder" style="aspect-ratio:16/9;background:#1a1500;color:#fbbf24;font-size:12px;">
-            Переход
-            ${s.video_status === 'done' ? '<br>(видео готово)' : ''}
-          </div>
-          <div class="scene-info">
-            <div class="scene-number">
-              Переход ${s.scene_number}
-              ${s.video_status && s.video_status !== 'pending' ? `<span class="status-badge status-${s.video_status === 'done' ? 'approved' : s.video_status}">видео: ${s.video_status}</span>` : ''}
-            </div>
-            ${s.video_error ? `<div class="error-msg">Видео: ${s.video_error}</div>` : ''}
-            <div class="scene-desc">${s.description || ''}</div>
-            <div class="scene-subtitle">"${s.subtitle_text || ''}"</div>
-            <div style="font-size:11px;color:#666;">video_prompt: ${s.video_prompt || '—'}</div>
-          </div>
-        </div>
-      `;
+      return `<div class="scene-card transition-card">
+        <div class="transition-arrow">→</div>
+        <div class="transition-label">Переход ${s.scene_number}${s.video_status === 'done' ? '<br>✓' : ''}</div>
+        ${s.video_error ? `<div class="error-msg" style="font-size:10px;margin:4px;">${s.video_error}</div>` : ''}
+      </div>`;
     }
-
-    return `
-      <div class="scene-card ${s.status === 'approved' ? 'approved' : ''}">
-        ${s.image_path
-          ? `<img src="${s.image_path}?t=${Date.now()}" alt="Scene ${s.scene_number}">`
-          : `<div class="placeholder">${s.status === 'error' ? 'Ошибка генерации' : 'Нет изображения'}</div>`
-        }
-        <div class="scene-info">
-          <div class="scene-number">
-            Сцена ${s.scene_number}
-            <span class="status-badge status-${s.status}">${s.status}</span>
-            ${s.video_status && s.video_status !== 'pending' ? `<span class="status-badge status-${s.video_status === 'done' ? 'approved' : s.video_status}">видео: ${s.video_status}</span>` : ''}
-          </div>
-          ${s.error_message ? `<div class="error-msg">${s.error_message}</div>` : ''}
-          ${s.video_error ? `<div class="error-msg">Видео: ${s.video_error}</div>` : ''}
-          <div class="scene-desc">${s.description || ''}</div>
-          <div class="scene-subtitle">"${s.subtitle_text || ''}"</div>
-          <div class="scene-prompt" onclick="togglePromptEdit('${s.id}')" style="cursor:pointer;" title="Нажмите для редактирования">
-            ${s.image_prompt || ''}
-          </div>
-          <textarea class="prompt-edit" id="prompt-${s.id}">${s.image_prompt || ''}</textarea>
-          ${s.status === 'approved' ? `
-            <div style="margin-bottom:6px;">
-              <div style="font-size:11px;color:#666;margin-bottom:2px;">Видео-промпт (движение/камера):</div>
-              <textarea class="prompt-edit visible" id="vidprompt-${s.id}" style="height:40px;">${s.video_prompt || ''}</textarea>
-            </div>
-          ` : ''}
-          <div class="scene-actions">
-            ${s.image_path ? `<button class="btn btn-approve btn-sm" onclick="approveScene('${s.id}')">Одобрить</button>` : ''}
-            <button class="btn btn-secondary btn-sm" onclick="regenerateScene('${s.id}')">Перегенерировать</button>
-          </div>
+    return `<div class="scene-card ${s.status === 'approved' ? 'approved' : ''}">
+      ${s.image_path
+        ? `<img src="${s.image_path}?t=${Date.now()}" alt="Сцена ${s.scene_number}">`
+        : `<div class="placeholder">${s.status === 'error' ? '⚠ Ошибка' : 'Нет кадра'}</div>`}
+      <div class="scene-info">
+        <div class="scene-number">
+          Сцена ${s.scene_number}
+          <span class="status-badge status-${s.status}">${statusLabel(s.status)}</span>
+          ${s.video_status && s.video_status !== 'pending' ? `<span class="status-badge status-${s.video_status === 'done' ? 'approved' : s.video_status}">${statusLabel(s.video_status === 'done' ? 'videos_ready' : s.video_status)}</span>` : ''}
+        </div>
+        ${s.error_message ? `<div class="error-msg">${s.error_message}</div>` : ''}
+        ${s.video_error ? `<div class="error-msg">${s.video_error}</div>` : ''}
+        <div class="scene-desc">${s.description || ''}</div>
+        <div class="scene-subtitle">"${s.subtitle_text || ''}"</div>
+        <div class="scene-prompt" onclick="togglePromptEdit('${s.id}')" title="Нажмите для редактирования">${s.image_prompt || ''}</div>
+        <textarea class="prompt-edit" id="prompt-${s.id}">${s.image_prompt || ''}</textarea>
+        ${s.status === 'approved' ? `<div style="margin-bottom:6px;"><div style="font-size:10px;color:var(--muted);margin-bottom:2px;">Видео-промпт:</div><textarea class="prompt-edit visible" id="vidprompt-${s.id}" style="height:38px;">${s.video_prompt || ''}</textarea></div>` : ''}
+        <div class="scene-actions">
+          ${s.image_path ? `<button class="btn btn-approve btn-sm" onclick="approveScene('${s.id}')">✓ Принять</button>` : ''}
+          <button class="btn btn-secondary btn-sm" onclick="regenerateScene('${s.id}')">↻ Обновить</button>
         </div>
       </div>
-    `;
+    </div>`;
   }).join('');
 }
 
 function renderScenesDeluxe(scenes, project) {
   const container = document.getElementById('scenesContainer');
-  if (scenes.length === 0) {
-    container.innerHTML = '<div class="empty">Нет сцен</div>';
-    return;
-  }
-
-  // Deluxe: sequential scene cards. Each scene shows its current state.
+  if (scenes.length === 0) { container.innerHTML = '<div class="empty">Кадры появятся после генерации</div>'; return; }
   container.innerHTML = scenes.map((s, idx) => {
     const hasImage = !!s.image_path;
     const isApproved = s.status === 'approved';
     const videoGenerating = s.video_status === 'generating';
     const videoDone = s.video_status === 'done';
-    const isGeneratingProject = project.status === 'generating_videos';
-
-    // Scene is "locked" if it has no image yet (scenes 2,3 wait for previous clip)
     const isLocked = !hasImage && idx > 0;
-
-    return `
-      <div class="scene-card ${isApproved ? 'approved' : ''}" style="${isLocked ? 'opacity:0.5;' : ''}">
-        ${hasImage
-          ? `<img src="${s.image_path}?t=${Date.now()}" alt="Scene ${s.scene_number}">`
-          : `<div class="placeholder">${isLocked ? 'Ожидание предыдущего клипа...' : s.status === 'error' ? 'Ошибка генерации' : 'Нет изображения'}</div>`
-        }
-        <div class="scene-info">
-          <div class="scene-number">
-            Сцена ${s.scene_number}
-            <span class="status-badge status-${s.status}">${s.status}</span>
-            ${s.video_status && s.video_status !== 'pending' ? `<span class="status-badge status-${s.video_status === 'done' ? 'approved' : s.video_status}">видео: ${s.video_status}</span>` : ''}
-          </div>
-          ${s.error_message ? `<div class="error-msg">${s.error_message}</div>` : ''}
-          ${s.video_error ? `<div class="error-msg">Видео: ${s.video_error}</div>` : ''}
-          <div class="scene-desc">${s.description || ''}</div>
-          <div class="scene-subtitle">"${s.subtitle_text || ''}"</div>
-          ${s.video_prompt ? `
-            <div style="margin-bottom:6px;">
-              <div style="font-size:11px;color:#666;margin-bottom:2px;">Видео-промпт (диалоги + движение):</div>
-              <textarea class="prompt-edit visible" id="vidprompt-${s.id}" style="height:50px;">${s.video_prompt}</textarea>
-            </div>
-          ` : ''}
-          <div class="scene-actions">
-            ${hasImage && !isApproved && !videoDone ? `<button class="btn btn-approve btn-sm" onclick="approveScene('${s.id}')">Одобрить</button>` : ''}
-            ${isApproved && !videoDone && !videoGenerating ? `<button class="btn btn-primary btn-sm" onclick="deluxeStep()">Генерировать клип</button>` : ''}
-            ${videoGenerating ? `<span class="btn btn-sm" style="background:#92400e;color:#fbbf24;cursor:default;"><span class="loading"></span> Генерация клипа...</span>` : ''}
-            ${videoDone ? `<span style="font-size:12px;color:#4ade80;">Клип готов</span>` : ''}
-          </div>
+    return `<div class="scene-card ${isApproved ? 'approved' : ''}" style="${isLocked ? 'opacity:0.4;' : ''}">
+      ${hasImage
+        ? `<img src="${s.image_path}?t=${Date.now()}" alt="Сцена ${s.scene_number}">`
+        : `<div class="placeholder">${isLocked ? '⏳ Ожидание...' : s.status === 'error' ? '⚠ Ошибка' : 'Нет кадра'}</div>`}
+      <div class="scene-info">
+        <div class="scene-number">
+          Сцена ${s.scene_number}
+          <span class="status-badge status-${s.status}">${statusLabel(s.status)}</span>
+          ${s.video_status && s.video_status !== 'pending' ? `<span class="status-badge status-${s.video_status === 'done' ? 'approved' : s.video_status}">${statusLabel(s.video_status === 'done' ? 'videos_ready' : s.video_status)}</span>` : ''}
+        </div>
+        ${s.error_message ? `<div class="error-msg">${s.error_message}</div>` : ''}
+        ${s.video_error ? `<div class="error-msg">${s.video_error}</div>` : ''}
+        <div class="scene-desc">${s.description || ''}</div>
+        <div class="scene-subtitle">"${s.subtitle_text || ''}"</div>
+        ${s.video_prompt ? `<div style="margin-bottom:6px;"><div style="font-size:10px;color:var(--muted);margin-bottom:2px;">Видео-промпт:</div><textarea class="prompt-edit visible" id="vidprompt-${s.id}" style="height:44px;">${s.video_prompt}</textarea></div>` : ''}
+        <div class="scene-actions">
+          ${hasImage && !isApproved && !videoDone ? `<button class="btn btn-approve btn-sm" onclick="approveScene('${s.id}')">✓ Принять</button>` : ''}
+          ${isApproved && !videoDone && !videoGenerating ? `<button class="btn btn-primary btn-sm" onclick="deluxeStep()">▶ Клип</button>` : ''}
+          ${videoGenerating ? `<span style="font-size:11px;color:#eab308;display:flex;align-items:center;gap:5px;"><span class="loading" style="border-color:rgba(234,179,8,0.2);border-top-color:#eab308;"></span> Генерация...</span>` : ''}
+          ${videoDone ? `<span style="font-size:11px;color:var(--success);">✓ Клип готов</span>` : ''}
         </div>
       </div>
-    `;
+    </div>`;
   }).join('');
 }
 
 async function deluxeStep() {
   const errEl = document.getElementById('generateError');
   errEl.textContent = '';
-
   try {
-    // Save any edited video prompts first
     const vidPromptEls = document.querySelectorAll('[id^="vidprompt-"]');
     for (const el of vidPromptEls) {
       const sceneId = el.id.replace('vidprompt-', '');
       const val = el.value.trim();
-      if (val) {
-        await api(`/api/projects/${currentProjectId}/scenes/${sceneId}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ video_prompt: val }),
-        });
-      }
+      if (val) await api(`/api/projects/${currentProjectId}/scenes/${sceneId}`, { method: 'PATCH', body: JSON.stringify({ video_prompt: val }) });
     }
-
     await api(`/api/projects/${currentProjectId}/step`, { method: 'POST' });
     startVideoPolling();
-  } catch (e) {
-    errEl.textContent = e.message;
-  }
+  } catch (e) { errEl.textContent = e.message; }
 }
 
 function togglePromptEdit(sceneId) {
-  const el = document.getElementById(`prompt-${sceneId}`);
-  el.classList.toggle('visible');
+  document.getElementById(`prompt-${sceneId}`).classList.toggle('visible');
 }
 
 async function generateImages() {
@@ -447,46 +1606,30 @@ async function generateImages() {
   const errEl = document.getElementById('generateError');
   errEl.textContent = '';
   btn.disabled = true;
-  btn.innerHTML = '<span class="loading"></span> Генерация...';
-
+  btn.innerHTML = '<span class="loading"></span> Создание кадров...';
   try {
     const result = await api(`/api/projects/${currentProjectId}/generate`, { method: 'POST' });
     showProject({ ...result, id: currentProjectId, scenario: document.getElementById('projectScenario').textContent, duration: parseInt(document.getElementById('projectTitle').textContent.match(/\d+/)?.[0] || 30), status: result.status });
     await loadProject(currentProjectId);
-  } catch (e) {
-    errEl.textContent = e.message;
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Сгенерировать картинки';
-  }
+  } catch (e) { errEl.textContent = e.message; }
+  finally { btn.disabled = false; btn.textContent = 'Создать кадры'; }
 }
 
 async function regenerateScene(sceneId) {
   const promptEl = document.getElementById(`prompt-${sceneId}`);
   const newPrompt = promptEl?.value?.trim();
-
   try {
     const body = newPrompt ? { image_prompt: newPrompt } : {};
-    await api(`/api/projects/${currentProjectId}/scenes/${sceneId}/regenerate`, {
-      method: 'POST',
-      body: JSON.stringify(body),
-    });
+    await api(`/api/projects/${currentProjectId}/scenes/${sceneId}/regenerate`, { method: 'POST', body: JSON.stringify(body) });
     await loadProject(currentProjectId);
-  } catch (e) {
-    alert('Ошибка: ' + e.message);
-  }
+  } catch (e) { alert('Ошибка: ' + e.message); }
 }
 
 async function approveScene(sceneId) {
   try {
-    await api(`/api/projects/${currentProjectId}/scenes/${sceneId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status: 'approved' }),
-    });
+    await api(`/api/projects/${currentProjectId}/scenes/${sceneId}`, { method: 'PATCH', body: JSON.stringify({ status: 'approved' }) });
     await loadProject(currentProjectId);
-  } catch (e) {
-    alert('Ошибка: ' + e.message);
-  }
+  } catch (e) { alert('Ошибка: ' + e.message); }
 }
 
 async function generateVideos() {
@@ -494,29 +1637,20 @@ async function generateVideos() {
   const errEl = document.getElementById('generateError');
   errEl.textContent = '';
   btn.disabled = true;
-  btn.innerHTML = '<span class="loading"></span> Генерация видео...';
-
+  btn.innerHTML = '<span class="loading"></span> Создание видео...';
   try {
-    // Save edited video prompts before generating
     const vidPromptEls = document.querySelectorAll('[id^="vidprompt-"]');
     for (const el of vidPromptEls) {
       const sceneId = el.id.replace('vidprompt-', '');
       const val = el.value.trim();
-      if (val) {
-        await api(`/api/projects/${currentProjectId}/scenes/${sceneId}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ video_prompt: val }),
-        });
-      }
+      if (val) await api(`/api/projects/${currentProjectId}/scenes/${sceneId}`, { method: 'PATCH', body: JSON.stringify({ video_prompt: val }) });
     }
-
     await api(`/api/projects/${currentProjectId}/video`, { method: 'POST' });
-    // Poll for progress
     startVideoPolling();
   } catch (e) {
     errEl.textContent = e.message;
     btn.disabled = false;
-    btn.textContent = 'Сгенерировать видео';
+    btn.textContent = 'Оживить сцены';
   }
 }
 
@@ -528,9 +1662,7 @@ function startVideoPolling() {
     try {
       const project = await api(`/api/projects/${currentProjectId}`);
       showProject(project);
-      if (project.status !== 'generating_videos') {
-        stopVideoPolling();
-      }
+      if (project.status !== 'generating_videos') stopVideoPolling();
     } catch {}
   }, 5000);
 }
@@ -544,16 +1676,11 @@ async function renderFinalVideo() {
   errEl.textContent = '';
   btn.disabled = true;
   btn.innerHTML = '<span class="loading"></span> Сборка...';
-
   try {
     await api(`/api/projects/${currentProjectId}/render`, { method: 'POST' });
     await loadProject(currentProjectId);
-  } catch (e) {
-    errEl.textContent = e.message;
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Собрать финальное видео';
-  }
+  } catch (e) { errEl.textContent = e.message; }
+  finally { btn.disabled = false; btn.textContent = 'Собрать видео'; }
 }
 
 async function resetVideoGeneration() {
@@ -562,27 +1689,19 @@ async function resetVideoGeneration() {
     stopVideoPolling();
     await api(`/api/projects/${currentProjectId}/video/reset`, { method: 'POST' });
     await loadProject(currentProjectId);
-  } catch (e) {
-    alert('Ошибка: ' + e.message);
-  }
+  } catch (e) { alert('Ошибка: ' + e.message); }
 }
 
-async function deleteCurrentProject() {
-  if (!currentProjectId) return;
-  if (!confirm('Удалить проект и все файлы?')) return;
-
-  try {
-    await api(`/api/projects/${currentProjectId}`, { method: 'DELETE' });
-    currentProjectId = null;
-    showCreateForm();
-    await loadProjects();
-  } catch (e) {
-    alert('Ошибка: ' + e.message);
-  }
+// ===== Init =====
+if (localStorage.getItem('sidebarOpen') === 'false') {
+  document.getElementById('sidebar').classList.add('collapsed');
 }
-
-// Init
-loadProjects();
+if (!accessToken) {
+  showView('landing');
+} else {
+  showView('app');
+  loadProjects();
+}
 </script>
 </body>
 </html>

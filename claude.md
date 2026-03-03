@@ -1,230 +1,92 @@
-# AnimatAI Service
+# CLAUDE.md
 
-## Описание проекта
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Внутренняя утилита для команды, создающей AI-мультики по заказам клиентов.
-Автоматизирует полный пайплайн: от сценария/референса до готового видеоролика с субтитрами.
+## Commands
 
-## Проблема
-
-Клиенты заказывают короткие AI-мультики (30 сек — 2 мин). Текущие AI-модели генерируют
-видео по 5-8 секунд. Оператору приходится вручную:
-- Разбивать сценарий на сцены
-- Генерировать изображения для каждой сцены
-- Следить за консистентностью персонажей между кадрами
-- Генерировать видео-клипы из каждого кадра
-- Склеивать клипы в единое видео
-- Добавлять субтитры
-
-Это рутинная работа, которую можно автоматизировать на 80%.
-
-## Решение
-
-Веб-утилита с пайплайном:
-
-```
-Вход: [изображение-референс] + [сценарий] + [длительность]
-  ↓
-1. Разбивка сценария на сцены (LLM)
-  ↓
-2. Генерация промежуточных кадров (image gen) — с сохранением персонажей
-  ↓
-3. Показ кадров оператору → approve / regenerate по каждому кадру
-  ↓
-4. Генерация видео-клипов из одобренных кадров (image-to-video)
-  ↓
-5. Склейка клипов + наложение субтитров (FFmpeg)
-  ↓
-Выход: готовый .mp4 с субтитрами
+```bash
+npm run dev    # Start with --watch (auto-restart on changes)
+npm start      # Production start
 ```
 
-## Анализ реализуемости
+No test runner or linter is configured.
 
-### Вердикт: РЕАЛИЗУЕМО
-
-Все компоненты пайплайна доступны через API. Основная сложность — консистентность
-персонажей между кадрами. Решается через:
-- Генерацию character sheet (лист с персонажем в разных позах)
-- Использование reference image при генерации каждого кадра
-- Ручной контроль оператора (approve/regenerate)
-
-### Технические риски
-
-| Риск | Уровень | Митигация |
-|------|---------|-----------|
-| Персонажи "плывут" между кадрами | Средний | Reference image + approve/regenerate |
-| Качество 512p при бюджетных моделях | Низкий | Для 2D-cartoon стиля 512p приемлемо |
-| API downtime у провайдеров | Низкий | Поддержка нескольких провайдеров |
-| Стоимость выходит за $1 на длинных видео | Средний | Ограничение длительности, выбор модели |
-
-## Анализ рентабельности
-
-### Себестоимость генерации (MiniMax Hailuo-02 512p + GPT Image 1 Mini)
-
-| Длительность | Клипов (6с) | Кадры | Видео | Итого |
-|---|---|---|---|---|
-| 30 сек | 5 | ~$0.05 | $0.50 | **~$0.55** |
-| 1 мин | 10 | ~$0.10 | $1.00 | **~$1.10** |
-| 2 мин | 20 | ~$0.20 | $2.00 | **~$2.20** |
-
-### Маржинальность
-
-При продаже 30-секундного мультика за $10-15: маржа **89-96%**.
-При продаже 2-минутного мультика за $30-50: маржа **93-96%**.
-
-Серверные расходы минимальны — утилита для внутреннего использования,
-основная нагрузка на внешних AI-API провайдерах.
-
-## Анализ актуальности
-
-**Высокая.** AI-видео генерация — один из самых быстрорастущих рынков.
-Готовых инструментов для полного пайплайна "сценарий → мультик" нет.
-Все работают вручную, комбинируя 3-5 разных инструментов.
-Автоматизация даёт конкурентное преимущество по скорости выполнения заказов.
-
-## Архитектура
-
-### Стек (максимально простой)
-
-- **Backend:** Node.js + Express
-- **Frontend:** HTML + vanilla JS (или минимальный React)
-- **Очередь задач:** BullMQ + Redis (генерация видео — долгие операции)
-- **Хранилище:** локальная файловая система (для тестовой версии)
-- **Видео-обработка:** FFmpeg (склейка, субтитры)
-- **База данных:** SQLite (для тестовой версии)
-
-### Внешние AI-API
-
-| Задача | Провайдер | Модель | Стоимость |
-|--------|-----------|--------|-----------|
-| Разбивка сценария на сцены | OpenAI / Claude | GPT-4o-mini / Haiku | ~$0.001 |
-| Генерация кадров (изображения) | OpenAI | GPT Image 1 Mini | ~$0.01/img |
-| Генерация видео-клипов | MiniMax (fal.ai) | Hailuo-02 512p 6s | ~$0.10/clip |
-| Субтитры | — | FFmpeg drawtext / ASS | бесплатно |
-
-### Структура проекта
+## Environment Variables
 
 ```
-animatai-service/
-├── claude.md                  # Описание проекта
-├── package.json
-├── src/
-│   ├── server.js              # Express сервер
-│   ├── routes/
-│   │   ├── projects.js        # CRUD проектов (мультиков)
-│   │   └── generations.js     # API генерации кадров/видео
-│   ├── services/
-│   │   ├── scenario.js        # Разбивка сценария на сцены (LLM)
-│   │   ├── imageGen.js        # Генерация изображений
-│   │   ├── videoGen.js        # Генерация видео-клипов (image-to-video)
-│   │   ├── stitcher.js        # Склейка видео (FFmpeg)
-│   │   └── subtitles.js       # Генерация и наложение субтитров
-│   ├── queue/
-│   │   ├── worker.js          # BullMQ worker
-│   │   └── jobs.js            # Определения задач
-│   ├── db/
-│   │   └── sqlite.js          # SQLite подключение и миграции
-│   └── public/                # Статика для веб-UI
-│       ├── index.html
-│       ├── app.js
-│       └── style.css
-├── storage/                   # Сгенерированные файлы (gitignore)
-│   ├── images/
-│   ├── clips/
-│   └── output/
-└── .env                       # API ключи
-```
-
-### Пайплайн (детально)
-
-#### 1. Создание проекта
-Оператор загружает:
-- Референс-изображение (опционально)
-- Сценарий текстом (опционально)
-- Желаемую длительность (30с / 1мин / 2мин)
-
-#### 2. Разбивка на сцены
-LLM анализирует сценарий и разбивает на N сцен (N = длительность / 6 секунд).
-Для каждой сцены генерируется:
-- Описание действия (prompt для image gen)
-- Текст субтитров для этой сцены
-- Описание персонажей в сцене
-
-Если сценария нет — LLM генерирует сценарий по референс-изображению.
-
-#### 3. Генерация кадров
-Для каждой сцены генерируется изображение-кадр.
-Консистентность обеспечивается:
-- Референс-изображение передаётся как база для каждой генерации
-- Промпт включает описание персонажей из шага 2
-- Стиль фиксируется (2D cartoon) через style prompt
-
-#### 4. Одобрение оператором
-Веб-UI показывает все кадры в виде storyboard.
-Оператор может:
-- Одобрить кадр (✓)
-- Перегенерировать кадр (↻) — с тем же или отредактированным промптом
-- Отредактировать порядок кадров
-
-#### 5. Генерация видео
-Каждый одобренный кадр отправляется в image-to-video API.
-Результат — набор 6-секундных клипов.
-
-#### 6. Сборка
-FFmpeg:
-- Конкатенация клипов с crossfade-переходами
-- Наложение субтитров (ASS формат с стилизацией)
-- Вывод финального .mp4
-
-### API Endpoints
-
-```
-POST   /api/projects              — создать проект
-GET    /api/projects/:id          — получить проект
-POST   /api/projects/:id/scenes   — запустить разбивку на сцены
-POST   /api/projects/:id/frames   — запустить генерацию кадров
-PATCH  /api/projects/:id/frames/:frameId  — одобрить/перегенерировать кадр
-POST   /api/projects/:id/video    — запустить генерацию видео-клипов
-POST   /api/projects/:id/render   — финальная сборка (склейка + субтитры)
-GET    /api/projects/:id/status   — статус пайплайна
-GET    /api/projects/:id/download — скачать готовое видео
-```
-
-## Первая итерация (MVP)
-
-Минимальный функционал для тестирования пайплайна:
-
-1. Загрузка референса + текст сценария
-2. Автоматическая разбивка на 5 сцен (30 сек видео)
-3. Генерация 5 кадров
-4. Просмотр и approve/regenerate в UI
-5. Генерация 5 видео-клипов
-6. Склейка + субтитры
-7. Скачивание результата
-
-Без: регистрации, оплаты, истории, очередей (всё синхронно для MVP).
-
-## Зависимости
-
-```json
-{
-  "dependencies": {
-    "express": "^4.21",
-    "multer": "^1.4",
-    "better-sqlite3": "^11",
-    "openai": "^4",
-    "fal-client": "^1",
-    "fluent-ffmpeg": "^2.1",
-    "dotenv": "^16",
-    "uuid": "^10"
-  }
-}
-```
-
-## Переменные окружения
-
-```
-OPENAI_API_KEY=         # Для LLM (сценарий) и генерации изображений
-FAL_KEY=                # Для MiniMax Hailuo video gen через fal.ai
+OPENROUTER_API_KEY=   # Used for both LLM (scenario splitting) and image generation
+FAL_KEY=              # fal.ai for FLUX image gen (deluxe/freetrial) and video gen
 PORT=3000
+LLM_MODEL=            # optional, defaults to google/gemini-2.5-pro
+IMAGE_MODEL=          # optional, defaults to openai/gpt-image-1
+VIDEO_MODEL=          # optional, defaults to fal-ai/minimax-video/image-to-video
 ```
+
+## Architecture
+
+**ESM modules** throughout (`"type": "module"` in package.json). Use `import`/`export` syntax.
+
+All Express routes are defined directly in `src/server.js` (not split into route files). All DB queries are prepared statements exported from `src/db.js`.
+
+**Database:** SQLite via `better-sqlite3`. Schema is in `src/db.js` with inline `try/catch` migrations (`ALTER TABLE` wrapped in try/catch for idempotency). DB file is `animatai.db` at project root.
+
+**File storage:** Generated assets are saved to `storage/` at project root:
+- `storage/images/` — generated frames and extracted last-frames
+- `storage/clips/` — generated video clips
+- `storage/output/` — final stitched videos + ASS subtitle files
+
+Paths stored in DB are relative web paths like `/storage/images/filename.png`.
+
+## Project Modes
+
+Four modes control pipeline behavior:
+
+| Mode | Scenes | Duration | Image Gen | Video Gen |
+|------|--------|----------|-----------|-----------|
+| `standard` | N = duration/6 | 30/60/120s | OpenRouter (gpt-image-1) | MiniMax via fal.ai |
+| `pro` | 3 main + 2 transitions | ~25s | OpenRouter (gpt-image-1) | Kling v2.6 pro via fal.ai |
+| `deluxe` | 3 (chained last-frame) | ~15s | FLUX-2-pro via fal.ai | Kling v2.6 pro + audio |
+| `freetrial` | 2 | ~10s | FLUX-2-pro via fal.ai | MiniMax via fal.ai |
+
+**Pro mode** interleaves main scenes and transitions: `main(1), transition(2), main(3), transition(4), main(5)`. Transitions don't have images — they morph from the last frame of the previous main clip to the first frame of the next.
+
+**Deluxe mode** uses a chained pipeline: only scene 1 generates an image. After each clip is generated, the last frame is extracted via FFmpeg and used as the starting image for the next scene.
+
+## Key API Endpoints
+
+```
+POST   /api/projects                              — create project + split scenario (LLM)
+GET    /api/projects/:id                          — get project with scenes
+POST   /api/projects/:id/generate                 — generate images for all scenes
+POST   /api/projects/:id/scenes/:sceneId/regenerate — regenerate single scene image
+PATCH  /api/projects/:id/scenes/:sceneId          — approve scene or update video_prompt
+POST   /api/projects/:id/video                    — start video generation (fire-and-forget)
+POST   /api/projects/:id/step                     — deluxe only: generate next scene video
+POST   /api/projects/:id/video/reset              — reset stuck video generation
+POST   /api/projects/:id/render                   — stitch clips + burn subtitles (FFmpeg)
+GET    /api/projects/:id/download                 — download final .mp4
+DELETE /api/projects/:id                          — delete project + all files
+```
+
+Video generation returns immediately with `202`-style response and processes in the background (fire-and-forget with `processor.catch`).
+
+## Scene Status Flow
+
+```
+image status: pending → done → approved → (video generation)
+video_status: pending → generating → done | error
+project status: created → scenes_ready → generating → done → generating_videos → videos_ready → rendering → rendered
+```
+
+## Subtitle Format
+
+`subtitle_text` in DB uses `|` as a phrase separator. During render, each scene's text is split by `|` and timed evenly within the clip duration. Subtitles are rendered as TikTok-style ASS (Arial Bold, white with black outline, bottom-center, 200ms fade).
+
+## External APIs
+
+- **LLM + standard image gen:** OpenRouter (`https://openrouter.ai/api/v1/chat/completions`) — supports both chat and image generation models via the same endpoint
+- **FLUX images:** `@fal-ai/client` queue API with polling (5-min timeout)
+- **Video (MiniMax):** `fal-ai/minimax-video/image-to-video` via fal.ai queue (20-min timeout)
+- **Video (Kling):** `fal-ai/kling-video/v2.6/pro/image-to-video` via fal.ai queue — supports `start_image_url` + optional `end_image_url` for transitions, `generate_audio` + `voice_ids` for deluxe
+
+All fal.ai calls use the queue pattern: `fal.queue.submit()` → poll `fal.queue.status()` → `fal.queue.result()`.

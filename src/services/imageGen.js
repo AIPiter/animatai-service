@@ -38,14 +38,14 @@ function extractBase64FromMessage(msg) {
   return null;
 }
 
-export async function generateImage(prompt, filename) {
+export async function generateImage(prompt, filename, openrouterKey) {
   fs.mkdirSync(STORAGE_DIR, { recursive: true });
 
   const response = await fetch(OPENROUTER_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      'Authorization': `Bearer ${openrouterKey || process.env.OPENROUTER_API_KEY}`,
     },
     body: JSON.stringify({
       model: process.env.IMAGE_MODEL || 'openai/gpt-image-1',

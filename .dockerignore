@@ -1,0 +1,12 @@
+.git
+.gitignore
+.env
+.env.example
+.idea
+node_modules
+storage
+*.db
+*.db-shm
+*.db-wal
+docker-compose*.yml
+*.md

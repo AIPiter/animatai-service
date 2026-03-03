@@ -18,12 +18,12 @@ const STYLE_PRESETS = {
   },
 };
 
-async function callLLM(systemPrompt, userMessage) {
+async function callLLM(systemPrompt, userMessage, openrouterKey) {
   const response = await fetch(OPENROUTER_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      'Authorization': `Bearer ${openrouterKey || process.env.OPENROUTER_API_KEY}`,
     },
     body: JSON.stringify({
       model: process.env.LLM_MODEL || 'google/gemini-2.5-pro',
@@ -60,7 +60,7 @@ async function callLLM(systemPrompt, userMessage) {
   }
 }
 
-export async function splitScenarioPro(scenario, style = 'anime') {
+export async function splitScenarioPro(scenario, style = 'anime', openrouterKey) {
   const preset = STYLE_PRESETS[style] || STYLE_PRESETS.anime;
 
   const systemPrompt = `You are a professional animation storyboard artist.
@@ -109,7 +109,7 @@ JSON only, no markdown, no comments.`;
 
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      const parsed = await callLLM(systemPrompt, scenario);
+      const parsed = await callLLM(systemPrompt, scenario, openrouterKey);
 
       const characters = parsed.characters || [];
       const mainScenes = parsed.scenes;
@@ -163,7 +163,7 @@ JSON only, no markdown, no comments.`;
   }
 }
 
-export async function splitScenarioDeluxe(scenario, style = 'anime') {
+export async function splitScenarioDeluxe(scenario, style = 'anime', openrouterKey) {
   const preset = STYLE_PRESETS[style] || STYLE_PRESETS.anime;
 
   const systemPrompt = `You are a professional animation storyboard artist.
@@ -206,7 +206,7 @@ JSON only, no markdown, no comments.`;
 
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      const parsed = await callLLM(systemPrompt, scenario);
+      const parsed = await callLLM(systemPrompt, scenario, openrouterKey);
 
       const characters = parsed.characters || [];
       const scenes = parsed.scenes;
@@ -253,7 +253,73 @@ JSON only, no markdown, no comments.`;
   }
 }
 
-export async function splitScenario(scenario, duration, style = 'anime') {
+export async function splitScenarioFreeTrial(scenario, style = 'anime', openrouterKey) {
+  const preset = STYLE_PRESETS[style] || STYLE_PRESETS.anime;
+
+  const systemPrompt = `You are a professional animation storyboard artist.
+Split the given scenario into exactly 2 scenes for a 10-second animated cartoon (2 clips of 5 seconds each).
+Pick the 2 most impactful, visually striking moments from the story.
+
+ART STYLE: ${preset.guide}
+${preset.characterNote}
+
+IMPORTANT: ALL text fields except "description" and "subtitle_text" MUST be in English. Keep values short to save tokens.
+IMPORTANT: Do NOT reference any copyrighted characters, brands, or franchises. Create original characters only.
+
+Return valid JSON with these fields:
+
+1. "characters" — array of ALL characters:
+   - "name": short ORIGINAL English name (no copyrighted names)
+   - "visual": EN, max 20 words. Key visual traits only. Example: "young girl, long red braids, green dress, freckles, big round glasses"
+
+2. "scenes" — array of exactly 2 objects:
+   - "description": what happens (Russian, 1 sentence)
+   - "action": EN, max 20 words. Pose, camera, setting. No character appearance or style. Example: "walking through dark forest at night, looking scared, moonlight"
+   - "video_prompt": EN, max 12 words. Motion/camera ONLY. Example: "slow zoom in, character blinks and smiles softly"
+   - "subtitle_text": same language as scenario. Write 1-2 short phrases separated by "|". Each phrase is a piece of narration or dialogue that tells the story. Make it expressive and engaging, like TikTok captions.
+   - "characters_in_scene": array of character names
+
+JSON only, no markdown, no comments.`;
+
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const parsed = await callLLM(systemPrompt, scenario, openrouterKey);
+
+      const characters = parsed.characters || [];
+      const scenes = parsed.scenes;
+
+      if (!Array.isArray(scenes) || scenes.length !== 2) {
+        throw new Error(`Expected 2 scenes, got ${scenes?.length}`);
+      }
+
+      const charMap = Object.fromEntries(characters.map(c => [c.name, c]));
+
+      for (const scene of scenes) {
+        const presentNames = scene.characters_in_scene || characters.map(c => c.name);
+        const charParts = presentNames
+          .map(name => {
+            const c = charMap[name];
+            return c ? `${c.name}: ${c.visual}` : null;
+          })
+          .filter(Boolean)
+          .join('. ');
+
+        scene.image_prompt = `${preset.guide}. ${charParts}. ${scene.action}`;
+      }
+
+      const characterDescription = characters
+        .map(c => `${c.name}: ${c.visual}`)
+        .join('\n');
+
+      return { characterDescription, scenes };
+    } catch (err) {
+      console.error(`[scenario-freetrial] Attempt ${attempt}/2 failed:`, err.message);
+      if (attempt === 2) throw err;
+    }
+  }
+}
+
+export async function splitScenario(scenario, duration, style = 'anime', openrouterKey) {
   const numScenes = Math.round(duration / 6);
   const preset = STYLE_PRESETS[style] || STYLE_PRESETS.anime;
 
@@ -284,7 +350,7 @@ JSON only, no markdown, no comments.`;
   // Retry up to 2 times on parse failure
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      const parsed = await callLLM(systemPrompt, scenario);
+      const parsed = await callLLM(systemPrompt, scenario, openrouterKey);
 
       const characters = parsed.characters || [];
       const scenes = parsed.scenes;

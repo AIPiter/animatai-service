@@ -1,5 +1,12 @@
 node_modules/
-storage/
 .env
 *.db
+*.db-shm
+*.db-wal
 .idea/
+.DS_Store
+
+# Storage: ignore generated files, keep directory structure
+storage/**
+!storage/**/
+!storage/**/.gitkeep

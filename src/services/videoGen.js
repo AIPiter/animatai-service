@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { fal } from '@fal-ai/client';
+import { createFalClient } from '@fal-ai/client';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 
@@ -10,8 +10,6 @@ const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLIPS_DIR = path.join(__dirname, '..', '..', 'storage', 'clips');
 const IMAGES_DIR = path.join(__dirname, '..', '..', 'storage', 'images');
-
-fal.config({ credentials: () => process.env.FAL_KEY });
 
 const MODEL = process.env.VIDEO_MODEL || 'fal-ai/minimax-video/image-to-video';
 
@@ -31,7 +29,8 @@ async function downloadWithRetry(url, maxAttempts = 3) {
   }
 }
 
-export async function generateVideo(imagePath, prompt, filename) {
+export async function generateVideo(imagePath, prompt, filename, falKey) {
+  const fal = createFalClient({ credentials: () => falKey || process.env.FAL_KEY });
   fs.mkdirSync(CLIPS_DIR, { recursive: true });
 
   const absoluteImagePath = path.join(__dirname, '..', '..', imagePath.replace(/^\//, ''));
@@ -125,7 +124,7 @@ export async function generateVideo(imagePath, prompt, filename) {
   throw new Error(`Video generation timed out after 20 minutes (request_id: ${request_id})`);
 }
 
-async function uploadImageToFal(imagePath) {
+async function uploadImageToFal(imagePath, fal) {
   const absolutePath = path.join(__dirname, '..', '..', imagePath.replace(/^\//, ''));
   const imageFile = new File(
     [fs.readFileSync(absolutePath)],
@@ -146,10 +145,11 @@ async function uploadImageToFal(imagePath) {
 
 const KLING_MODEL = 'fal-ai/kling-video/v2.6/pro/image-to-video';
 
-export async function generateVideoKling(startImagePath, prompt, filename, endImagePath, { generateAudio = false, voiceIds = [] } = {}) {
+export async function generateVideoKling(startImagePath, prompt, filename, endImagePath, { generateAudio = false, voiceIds = [] } = {}, falKey) {
+  const fal = createFalClient({ credentials: () => falKey || process.env.FAL_KEY });
   fs.mkdirSync(CLIPS_DIR, { recursive: true });
 
-  const startImageUrl = await uploadImageToFal(startImagePath);
+  const startImageUrl = await uploadImageToFal(startImagePath, fal);
 
   const input = {
     start_image_url: startImageUrl,
@@ -168,7 +168,7 @@ export async function generateVideoKling(startImagePath, prompt, filename, endIm
   }
 
   if (endImagePath) {
-    input.end_image_url = await uploadImageToFal(endImagePath);
+    input.end_image_url = await uploadImageToFal(endImagePath, fal);
   }
 
   console.log(`[videoGen-kling] Input for ${filename}:`, JSON.stringify(input, null, 2));

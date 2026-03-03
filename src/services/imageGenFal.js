@@ -1,16 +1,15 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { fal } from '@fal-ai/client';
+import { createFalClient } from '@fal-ai/client';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const STORAGE_DIR = path.join(__dirname, '..', '..', 'storage', 'images');
 
-fal.config({ credentials: () => process.env.FAL_KEY });
-
 const FLUX_MODEL = 'fal-ai/flux-2-pro';
 
-export async function generateImageFlux(prompt, filename) {
+export async function generateImageFlux(prompt, filename, falKey) {
+  const fal = createFalClient({ credentials: () => falKey || process.env.FAL_KEY });
   fs.mkdirSync(STORAGE_DIR, { recursive: true });
 
   const { request_id } = await fal.queue.submit(FLUX_MODEL, {
