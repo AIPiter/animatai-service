@@ -45,9 +45,13 @@ import { generateImage } from './services/imageGen.js';
 import { generateVideo, generateVideoKling, extractLastFrame } from './services/videoGen.js';
 import { stitchVideo } from './services/stitcher.js';
 import { generateImageFlux } from './services/imageGenFal.js';
+import { generateLoopVideo } from './services/videoGenKling3.js';
+import multer from 'multer';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -710,6 +714,44 @@ app.get('/api/projects/:id/download', async (req, res) => {
 
   const absolutePath = path.join(__dirname, '..', project.final_video_path.replace(/^\//, ''));
   res.download(absolutePath, `animatai_${project.id.slice(0, 8)}.mp4`);
+});
+
+// --- Loop Video Generation ---
+
+app.post('/api/generate-video', requireAuth, upload.fields([
+  { name: 'first_frame', maxCount: 1 },
+  { name: 'last_frame', maxCount: 1 },
+]), async (req, res) => {
+  try {
+    const falKey = req.headers['x-fal-key'];
+    if (!falKey) return res.status(400).json({ error: 'fal.ai API key required (X-Fal-Key header)' });
+
+    const firstFrame = req.files?.first_frame?.[0];
+    const lastFrame = req.files?.last_frame?.[0];
+    const { prompt, duration } = req.body;
+
+    if (!firstFrame) return res.status(400).json({ error: 'first_frame is required' });
+    if (!lastFrame) return res.status(400).json({ error: 'last_frame is required' });
+    if (!prompt || !prompt.trim()) return res.status(400).json({ error: 'prompt is required' });
+
+    const dur = parseInt(duration, 10) || 5;
+    if (dur < 3 || dur > 15) return res.status(400).json({ error: 'duration must be between 3 and 15' });
+
+    const videoPath = await generateLoopVideo({
+      firstFrameBuffer: firstFrame.buffer,
+      firstFrameName: firstFrame.originalname,
+      lastFrameBuffer: lastFrame.buffer,
+      lastFrameName: lastFrame.originalname,
+      prompt: prompt.trim(),
+      duration: dur,
+      falKey,
+    });
+
+    res.json({ video_url: videoPath });
+  } catch (err) {
+    console.error('[/api/generate-video] Error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 const PORT = process.env.PORT || 3000;

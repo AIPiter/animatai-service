@@ -4,787 +4,807 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AnimatAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/theme.css">
   <style>
-    /* ===== Variables ===== */
-    :root {
-      --bg:       #0f0f0f;
-      --surface:  #1a1a1a;
-      --border:   #2a2a2a;
-      --text:     #ffffff;
-      --muted:    #a0a0a0;
-      --accent:   #2563eb;
-      --accent-h: #1d4ed8;
-      --danger:   #ef4444;
-      --success:  #22c55e;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    /* ===== Reset ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+      font-family: var(--font);
       background: var(--bg);
       color: var(--text);
-      line-height: 1.5;
+      height: 100vh;
+      overflow: hidden;
     }
 
-    /* ===== Background orbs (shared across landing + auth) ===== */
+    /* ===== Shared utilities ===== */
+    @keyframes spin    { to { transform: rotate(360deg); } }
+    @keyframes fadeUp  { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse   { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+    @keyframes drift1  { 0%,100% { transform: translate(0,0); } 50% { transform: translate(80px, 70px); } }
+    @keyframes drift2  { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-60px, 80px); } }
+    @keyframes drift3  { 0%,100% { transform: translate(0,0); } 50% { transform: translate(50px,-50px); } }
+
+    .loading {
+      display: inline-block; width: 13px; height: 13px;
+      border: 2px solid rgba(255,255,255,.25); border-top-color: #fff;
+      border-radius: 50%; animation: spin .7s linear infinite;
+    }
+    .loading-dark {
+      display: inline-block; width: 12px; height: 12px;
+      border: 2px solid rgba(0,0,0,.15); border-top-color: #000;
+      border-radius: 50%; animation: spin .7s linear infinite;
+    }
+
+    /* ===== Background orbs ===== */
     .orb {
-      position: fixed;
-      border-radius: 50%;
-      filter: blur(120px);
-      opacity: 0.1;
-      pointer-events: none;
-      z-index: 0;
+      position: fixed; border-radius: 50%;
+      filter: blur(120px); opacity: .08;
+      pointer-events: none; z-index: 0;
     }
-    .orb-1 {
-      width: 700px; height: 700px;
-      background: #2563eb;
-      top: -250px; left: -200px;
-      animation: drift1 24s ease-in-out infinite;
-    }
-    .orb-2 {
-      width: 550px; height: 550px;
-      background: #7c3aed;
-      top: 35%; right: -180px;
-      animation: drift2 30s ease-in-out infinite;
-    }
-    .orb-3 {
-      width: 420px; height: 420px;
-      background: #0ea5e9;
-      bottom: -120px; left: 28%;
-      animation: drift3 20s ease-in-out infinite;
-    }
-    @keyframes drift1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(100px, 90px); } }
-    @keyframes drift2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-80px, 100px); } }
-    @keyframes drift3 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(60px, -60px); } }
+    .orb-1 { width:700px; height:700px; background:#D4FF45; top:-250px; left:-200px; animation: drift1 24s ease-in-out infinite; }
+    .orb-2 { width:550px; height:550px; background:#EA2B98; top:35%; right:-180px; animation: drift2 30s ease-in-out infinite; }
+    .orb-3 { width:420px; height:420px; background:#45A055; bottom:-120px; left:28%; animation: drift3 20s ease-in-out infinite; }
 
-    /* ===== Landing ===== */
+    /* ======================================================
+       LANDING
+    ====================================================== */
     #view-landing {
       min-height: 100vh;
       position: relative;
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: auto;
     }
 
-    /* Nav */
     .l-nav {
-      position: relative;
-      z-index: 10;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      position: relative; z-index: 10;
+      display: flex; align-items: center; justify-content: space-between;
       padding: 24px 48px;
     }
-    @media (max-width: 600px) { .l-nav { padding: 20px 24px; } }
+    @media (max-width:600px) { .l-nav { padding: 20px 24px; } }
+
     .l-logo {
-      font-size: 18px;
-      font-weight: 700;
-      letter-spacing: -0.03em;
+      font-size: 18px; font-weight: var(--fw-bold); letter-spacing: -.03em;
     }
     .l-nav-links { display: flex; gap: 10px; }
+
     .btn-ghost {
-      background: transparent;
-      color: var(--muted);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 9px 18px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: color 0.15s, border-color 0.15s;
-      font-family: inherit;
+      background: transparent; color: var(--muted);
+      border: var(--border-width) solid var(--border);
+      border-radius: var(--radius-sm); padding: 9px 18px;
+      font-size: 14px; font-weight: var(--fw-medium);
+      cursor: pointer; font-family: inherit;
+      transition: color .15s, border-color .15s;
     }
     .btn-ghost:hover { color: var(--text); border-color: #444; }
-    .btn-solid {
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 9px 18px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s, transform 0.1s;
-      font-family: inherit;
-    }
-    .btn-solid:hover { background: var(--accent-h); }
 
-    /* Hero */
+    .btn-solid-landing {
+      background: var(--accent); color: var(--text-card);
+      border: var(--border-width) solid var(--text-card);
+      border-radius: var(--radius-sm); padding: 9px 18px;
+      font-size: 14px; font-weight: var(--fw-bold);
+      cursor: pointer; font-family: inherit; text-transform: uppercase;
+      transition: background .15s, transform .1s;
+    }
+    .btn-solid-landing:hover { background: var(--accent-dark); transform: translateY(-1px); }
+
     .l-hero {
-      position: relative;
-      z-index: 10;
-      text-align: center;
-      padding: 72px 24px 56px;
+      position: relative; z-index: 10;
+      text-align: center; padding: 72px 24px 56px;
     }
     .l-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      background: rgba(37,99,235,0.1);
-      border: 1px solid rgba(37,99,235,0.22);
-      border-radius: 20px;
-      padding: 5px 14px;
-      font-size: 13px;
-      color: #93c5fd;
-      margin-bottom: 28px;
-      animation: fadeUp 0.5s ease both;
+      display: inline-flex; align-items: center; gap: 7px;
+      background: rgba(212,255,69,.08);
+      border: 1px solid rgba(212,255,69,.2);
+      border-radius: 20px; padding: 5px 14px;
+      font-size: 13px; color: var(--accent); margin-bottom: 28px;
+      animation: fadeUp .5s ease both;
     }
     .l-badge-dot {
       width: 6px; height: 6px;
-      background: #3b82f6;
-      border-radius: 50%;
+      background: var(--accent); border-radius: 50%;
       animation: pulse 2s ease infinite;
     }
-    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
     .l-hero h1 {
-      font-size: clamp(36px, 6vw, 74px);
-      font-weight: 800;
-      line-height: 1.08;
-      letter-spacing: -0.04em;
-      margin-bottom: 20px;
-      animation: fadeUp 0.5s ease 0.08s both;
+      font-size: clamp(36px, 6vw, 74px); font-weight: var(--fw-bold);
+      line-height: 1.06; letter-spacing: -.04em; margin-bottom: 20px;
+      animation: fadeUp .5s ease .08s both;
     }
     .l-hero h1 em {
-      font-style: normal;
-      background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      font-style: normal; color: var(--accent);
     }
     .l-sub {
-      font-size: clamp(15px, 2.2vw, 19px);
-      color: var(--muted);
-      max-width: 540px;
-      margin: 0 auto 40px;
-      line-height: 1.65;
-      animation: fadeUp 0.5s ease 0.16s both;
+      font-size: clamp(15px, 2.2vw, 19px); color: var(--muted);
+      max-width: 540px; margin: 0 auto 40px; line-height: 1.65;
+      animation: fadeUp .5s ease .16s both;
     }
     .l-hero-btns {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-      flex-wrap: wrap;
-      animation: fadeUp 0.5s ease 0.24s both;
+      display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+      animation: fadeUp .5s ease .24s both;
     }
     .btn-cta {
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      padding: 14px 28px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s, transform 0.12s;
-      font-family: inherit;
+      background: var(--accent); color: var(--text-card);
+      border: var(--border-width) solid var(--text-card);
+      border-radius: var(--radius-pill); padding: 14px 28px;
+      font-size: 15px; font-weight: var(--fw-bold); cursor: pointer;
+      font-family: inherit; text-transform: uppercase;
+      transition: background .15s, transform .12s;
     }
-    .btn-cta:hover { background: var(--accent-h); transform: translateY(-1px); }
+    .btn-cta:hover { background: var(--accent-dark); transform: translateY(-1px); }
+
     .btn-cta-ghost {
-      background: transparent;
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px 28px;
-      font-size: 15px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: border-color 0.15s, transform 0.12s;
-      font-family: inherit;
+      background: transparent; color: var(--text);
+      border: var(--border-width) solid var(--border);
+      border-radius: var(--radius-pill); padding: 14px 28px;
+      font-size: 15px; font-weight: var(--fw-medium); cursor: pointer;
+      font-family: inherit; transition: border-color .15s, transform .12s;
     }
     .btn-cta-ghost:hover { border-color: #555; transform: translateY(-1px); }
 
-    /* Features */
     .l-section {
-      position: relative;
-      z-index: 10;
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 0 24px 72px;
-      animation: fadeUp 0.5s ease 0.32s both;
+      position: relative; z-index: 10;
+      max-width: 960px; margin: 0 auto; padding: 0 24px 72px;
+      animation: fadeUp .5s ease .32s both;
     }
     .l-section-label {
-      text-align: center;
-      font-size: 11px;
-      font-weight: 600;
-      color: #444;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      margin-bottom: 40px;
+      text-align: center; font-size: 11px; font-weight: var(--fw-bold);
+      color: #444; text-transform: uppercase; letter-spacing: .12em; margin-bottom: 32px;
     }
     .l-grid-3 {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 14px;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 12px;
     }
     .l-card {
-      background: rgba(26,26,26,0.55);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 28px;
-      backdrop-filter: blur(12px);
-      transition: border-color 0.2s, transform 0.2s;
+      background: var(--card); color: var(--text-card);
+      border: var(--border-width) solid var(--text-card);
+      border-radius: var(--radius-card); padding: 28px;
+      transition: transform .2s;
     }
-    .l-card:hover { border-color: #3a3a3a; transform: translateY(-2px); }
+    .l-card:hover { transform: translateY(-3px); }
     .l-card-num {
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--accent);
-      letter-spacing: 0.08em;
-      margin-bottom: 12px;
+      font-size: 11px; font-weight: var(--fw-bold); color: var(--accent-green);
+      letter-spacing: .08em; margin-bottom: 12px; text-transform: uppercase;
     }
-    .l-card h3 { font-size: 17px; font-weight: 600; margin-bottom: 8px; }
-    .l-card p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+    .l-card h3 { font-size: 17px; font-weight: var(--fw-bold); margin-bottom: 8px; color: var(--text-card); }
+    .l-card p { font-size: 14px; color: var(--muted-card); line-height: 1.6; }
 
-    /* Modes */
     .l-grid-4 {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-      gap: 12px;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(190px,1fr)); gap: 10px;
     }
     .l-mode {
-      background: rgba(26,26,26,0.35);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 22px 20px;
-      transition: border-color 0.2s;
+      background: var(--card); color: var(--text-card);
+      border: var(--border-width) solid var(--text-card);
+      border-radius: var(--radius-card); padding: 20px;
+      transition: transform .2s;
     }
-    .l-mode:hover { border-color: #3a3a3a; }
-    .l-mode-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
-    .l-mode-meta { font-size: 12px; color: #3b82f6; margin-bottom: 8px; font-weight: 500; }
-    .l-mode-desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
+    .l-mode:hover { transform: translateY(-2px); }
+    .l-mode-name { font-size: 15px; font-weight: var(--fw-bold); margin-bottom: 4px; }
+    .l-mode-meta { font-size: 12px; color: var(--accent-green); margin-bottom: 8px; font-weight: var(--fw-semibold); }
+    .l-mode-desc { font-size: 13px; color: var(--muted-card); line-height: 1.5; }
 
-    /* Footer */
     .l-footer {
-      position: relative;
-      z-index: 10;
-      text-align: center;
-      padding: 0 24px 48px;
-      font-size: 13px;
-      color: #333;
+      position: relative; z-index: 10;
+      text-align: center; padding: 0 24px 48px;
+      font-size: 13px; color: #333;
     }
 
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(18px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ===== Auth screens (Login + Register) ===== */
+    /* ======================================================
+       AUTH (Login / Register)
+    ====================================================== */
     .auth-view {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      position: relative;
+      min-height: 100vh; display: flex; align-items: center;
+      justify-content: center; padding: 24px; position: relative;
     }
     .auth-back {
-      position: fixed;
-      top: 24px;
-      left: 28px;
-      z-index: 20;
-      background: none;
-      border: none;
-      color: var(--muted);
-      cursor: pointer;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-family: inherit;
-      padding: 6px 0;
-      transition: color 0.15s;
+      position: fixed; top: 24px; left: 28px; z-index: 20;
+      background: none; border: none; color: var(--muted);
+      cursor: pointer; font-size: 14px; display: flex; align-items: center;
+      gap: 6px; font-family: inherit; padding: 6px 0; transition: color .15s;
     }
     .auth-back:hover { color: var(--text); }
+
     .auth-card {
-      width: 100%;
-      max-width: 400px;
-      background: rgba(22,22,22,0.85);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 38px 36px;
-      backdrop-filter: blur(24px);
-      position: relative;
-      z-index: 10;
-      animation: fadeUp 0.4s ease both;
+      width: 100%; max-width: 400px;
+      background: var(--card);
+      border: var(--border-width) solid var(--text-card);
+      border-radius: var(--radius-card); padding: 38px 36px;
+      position: relative; z-index: 10; animation: fadeUp .4s ease both;
     }
-    .auth-logo { font-size: 17px; font-weight: 700; margin-bottom: 20px; color: var(--muted); }
-    .auth-title { font-size: 24px; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 5px; }
-    .auth-subtitle { font-size: 14px; color: var(--muted); margin-bottom: 28px; }
+    .auth-logo { font-size: 17px; font-weight: var(--fw-bold); margin-bottom: 20px; color: var(--text-card); }
+    .auth-title { font-size: 24px; font-weight: var(--fw-bold); letter-spacing: -.03em; margin-bottom: 5px; color: var(--text-card); }
+    .auth-subtitle { font-size: 14px; color: var(--muted-card); margin-bottom: 28px; }
+
     .auth-field { margin-bottom: 16px; }
-    .auth-field label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 6px; }
+    .auth-field label { font-size: 13px; color: var(--muted-card); display: block; margin-bottom: 6px; font-weight: var(--fw-medium); }
     .auth-field input {
       width: 100%;
-      background: rgba(0,0,0,0.4);
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      color: var(--text);
-      padding: 11px 14px;
-      font-size: 14px;
-      outline: none;
-      font-family: inherit;
-      transition: border-color 0.15s;
+      background: #F5F5F5; border: var(--border-width) solid #DDD;
+      border-radius: var(--radius-input); color: var(--text-card);
+      padding: 11px 14px; font-size: 14px; outline: none; font-family: inherit;
+      transition: border-color .15s;
     }
-    .auth-field input:focus { border-color: #3b5fc0; }
+    .auth-field input:focus { border-color: var(--text-card); }
+    .auth-error { color: var(--danger); font-size: 13px; margin-bottom: 10px; min-height: 18px; line-height: 1.4; }
+
     .auth-submit {
-      width: 100%;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 9px;
-      padding: 12px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      margin-top: 4px;
-      transition: background 0.15s;
-      font-family: inherit;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
+      width: 100%; background: var(--accent); color: var(--text-card);
+      border: var(--border-width) solid var(--text-card);
+      border-radius: var(--radius-pill); padding: 13px;
+      font-size: 14px; font-weight: var(--fw-bold); cursor: pointer; margin-top: 4px;
+      font-family: inherit; text-transform: uppercase; letter-spacing: .03em;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: background .15s;
     }
-    .auth-submit:hover { background: var(--accent-h); }
-    .auth-submit:disabled { opacity: 0.55; cursor: not-allowed; }
-    .auth-error {
-      color: #fca5a5;
-      font-size: 13px;
-      margin-bottom: 10px;
-      min-height: 18px;
-      line-height: 1.4;
-    }
-    .auth-switch { text-align: center; margin-top: 20px; font-size: 13px; color: var(--muted); }
-    .auth-link { color: var(--accent); cursor: pointer; }
+    .auth-submit:hover { background: var(--accent-dark); }
+    .auth-submit:disabled { opacity: .55; cursor: not-allowed; }
+
+    .auth-switch { text-align: center; margin-top: 20px; font-size: 13px; color: var(--muted-card); }
+    .auth-link { color: var(--accent-green); cursor: pointer; font-weight: var(--fw-semibold); }
     .auth-link:hover { text-decoration: underline; }
 
-    /* 6-digit code input */
-    .code-inputs {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-      justify-content: center;
-    }
-    .code-input {
-      width: 50px;
-      height: 58px;
-      text-align: center;
-      font-size: 24px;
-      font-weight: 700;
-      background: rgba(0,0,0,0.4);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      color: var(--text);
-      outline: none;
-      transition: border-color 0.15s;
-      font-family: 'Courier New', monospace;
-      caret-color: transparent;
-    }
-    .code-input:focus { border-color: #3b5fc0; }
-    .code-hint {
-      font-size: 13px;
-      color: var(--muted);
-      text-align: center;
-      margin-bottom: 20px;
-      line-height: 1.5;
-    }
-    .code-resend {
-      text-align: center;
-      font-size: 13px;
-      color: var(--muted);
-      margin-top: 14px;
+    /* ======================================================
+       APP SHELL
+    ====================================================== */
+    #view-app {
+      display: flex; height: 100vh; overflow: hidden;
     }
 
-    /* Loading spinner */
-    .loading {
-      display: inline-block;
-      width: 13px; height: 13px;
-      border: 2px solid rgba(255,255,255,0.25);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ===== App view ===== */
-    #view-app { display: flex; min-height: 100vh; }
-
-    /* Sidebar */
+    /* --- Sidebar --- */
     .sidebar {
-      width: 260px;
-      background: var(--surface);
+      width: 260px; flex-shrink: 0;
       border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      flex-shrink: 0;
-      transition: width 300ms ease, border-color 300ms ease;
+      display: flex; flex-direction: column;
+      transition: width .3s ease, border-color .3s ease;
       overflow: hidden;
     }
-    .sidebar.collapsed { width: 0; border-color: transparent; }
+    .sidebar.collapsed { width: 0; border-right-color: transparent; }
 
-    .sidebar-header {
-      padding: 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    .sidebar-brand {
+      padding: 16px 16px 12px;
+      display: flex; align-items: center; gap: 8px;
       border-bottom: 1px solid var(--border);
-      width: 260px;
-      flex-shrink: 0;
+      flex-shrink: 0; width: 260px;
     }
     .sidebar-toggle {
-      width: 32px; height: 32px;
-      background: transparent;
-      border: none;
-      color: var(--muted);
-      cursor: pointer;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      flex-shrink: 0;
-      transition: color 0.15s, background 0.15s;
+      width: 30px; height: 30px; background: transparent; border: none;
+      color: var(--muted); cursor: pointer; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: color .15s, background .15s;
     }
-    .sidebar-toggle:hover { color: var(--text); background: rgba(255,255,255,0.05); }
-    .new-project-btn {
-      flex: 1;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 7px 10px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.15s;
-      font-family: inherit;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .sidebar-toggle:hover { color: var(--text); background: rgba(255,255,255,.05); }
+    .brand-name { font-size: 16px; font-weight: var(--fw-bold); letter-spacing: -.03em; }
+
+    .sidebar-new-btn {
+      margin: 12px 16px 8px;
+      width: calc(100% - 32px); flex-shrink: 0;
+      background: var(--accent); color: var(--text-card);
+      border: var(--border-width) solid var(--text-card);
+      border-radius: var(--radius-pill); padding: 9px 14px;
+      font-size: 13px; font-weight: var(--fw-bold); cursor: pointer;
+      font-family: inherit; text-transform: uppercase; letter-spacing: .03em;
+      white-space: nowrap; transition: background .15s;
     }
-    .new-project-btn:hover { background: var(--accent-h); }
+    .sidebar-new-btn:hover { background: var(--accent-dark); }
+
+    .sidebar-section-header {
+      font-size: 11px; font-weight: var(--fw-bold); color: #444;
+      text-transform: uppercase; letter-spacing: .08em;
+      padding: 14px 20px 6px; flex-shrink: 0; width: 260px;
+    }
 
     .sidebar-projects {
-      flex: 1;
-      overflow-y: auto;
-      padding: 8px;
-      width: 260px;
+      flex: 1; overflow-y: auto; padding: 4px 8px; width: 260px;
     }
     .sidebar-empty { color: #444; font-size: 13px; padding: 20px 12px; line-height: 1.6; }
     .sidebar-section-label {
-      font-size: 11px;
-      color: #444;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      padding: 8px 8px 4px;
+      font-size: 10px; color: #444; font-weight: var(--fw-medium);
+      text-transform: uppercase; letter-spacing: .08em;
+      padding: 8px 10px 4px;
     }
+
     .project-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 10px;
-      border-radius: 7px;
-      cursor: pointer;
-      transition: background 0.15s;
-      font-size: 13px;
-      color: var(--muted);
+      display: flex; align-items: center; gap: 6px;
+      padding: 10px 12px; border-radius: 12px;
+      cursor: pointer; font-size: 13px; color: #666;
+      transition: all .2s;
     }
-    .project-item:hover { background: rgba(255,255,255,0.05); color: var(--text); }
-    .project-item.active { background: rgba(255,255,255,0.07); color: var(--text); }
+    .project-item:not(.active):hover { background: #111; color: var(--text); }
+    .project-item.active {
+      background: var(--accent); color: var(--text-card);
+      font-weight: var(--fw-bold); border: var(--border-width) solid var(--text-card);
+    }
     .project-item-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .project-item-menu {
-      width: 24px; height: 24px;
-      background: transparent; border: none;
-      color: #555; cursor: pointer;
-      border-radius: 4px; font-size: 15px;
+      width: 22px; height: 22px; background: transparent; border: none;
+      color: currentColor; cursor: pointer; border-radius: 4px; font-size: 14px;
       display: flex; align-items: center; justify-content: center;
-      opacity: 0; transition: opacity 0.15s, background 0.15s;
-      flex-shrink: 0;
+      opacity: 0; transition: opacity .15s;
     }
     .project-item:hover .project-item-menu { opacity: 1; }
-    .project-item-menu:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+    .project-item.active .project-item-menu { opacity: .6; }
+    .project-item.active .project-item-menu:hover { opacity: 1; }
     .project-item-input {
       background: transparent; border: none; outline: none;
-      color: var(--text); font: inherit; width: 100%; font-size: 13px;
+      color: inherit; font: inherit; width: 100%; font-size: 13px;
     }
 
     .sidebar-footer {
-      padding: 12px;
-      border-top: 1px solid var(--border);
-      width: 260px;
-      flex-shrink: 0;
+      padding: 10px 8px; border-top: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 4px;
+      flex-shrink: 0; width: 260px;
     }
-    .logout-btn {
-      width: 100%;
-      background: none;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--muted);
-      padding: 8px;
-      font-size: 13px;
-      cursor: pointer;
-      font-family: inherit;
-      transition: color 0.15s, border-color 0.15s;
+    .sidebar-footer-btn {
+      width: 100%; background: none;
+      border: 1px solid var(--border); border-radius: 10px;
+      color: var(--muted); padding: 9px 12px;
+      font-size: 12px; font-weight: var(--fw-medium);
+      cursor: pointer; font-family: inherit;
+      display: flex; align-items: center; gap: 8px;
+      transition: color .15s, border-color .15s, background .15s;
     }
-    .logout-btn:hover { color: var(--text); border-color: #3a3a3a; }
+    .sidebar-footer-btn:hover { color: var(--text); border-color: #444; background: rgba(255,255,255,.03); }
+    .sidebar-footer-btn svg { flex-shrink: 0; }
 
-    /* Sidebar open toggle */
+    /* Sidebar expand (floating, when collapsed) */
     .sidebar-open-toggle {
-      position: fixed;
-      top: 12px; left: 12px;
-      z-index: 100;
+      position: fixed; top: 14px; left: 14px; z-index: 100;
       width: 36px; height: 36px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--muted);
-      cursor: pointer;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      font-size: 17px;
-      transition: color 0.15s;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--muted); cursor: pointer;
+      display: none; align-items: center; justify-content: center; font-size: 16px;
+      transition: color .15s;
     }
     .sidebar.collapsed ~ .sidebar-open-toggle { display: flex; }
 
-    /* Context menu */
+    /* --- Context menu --- */
     .context-menu {
-      position: fixed;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 4px;
-      z-index: 1000;
-      min-width: 160px;
-      display: none;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      position: fixed; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 4px; z-index: 1000; min-width: 160px;
+      display: none; box-shadow: 0 8px 24px rgba(0,0,0,.6);
     }
     .context-menu.visible { display: block; }
     .context-menu-item {
-      padding: 8px 12px;
-      font-size: 13px;
-      cursor: pointer;
-      border-radius: 5px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--text);
-      transition: background 0.1s;
+      padding: 9px 12px; font-size: 13px; cursor: pointer;
+      border-radius: 7px; display: flex; align-items: center; gap: 8px;
+      color: var(--text); transition: background .1s;
     }
-    .context-menu-item:hover { background: rgba(255,255,255,0.06); }
+    .context-menu-item:hover { background: rgba(255,255,255,.06); }
     .context-menu-item.danger { color: var(--danger); }
-    .context-menu-item.danger:hover { background: rgba(239,68,68,0.08); }
+    .context-menu-item.danger:hover { background: rgba(239,68,68,.08); }
 
-    /* Main area */
-    .main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      min-width: 0;
-    }
-    .main-content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 28px 32px;
+    /* --- Main area --- */
+    .main-area {
+      flex: 1; min-width: 0;
+      display: flex; flex-direction: column; overflow: hidden;
     }
 
-    /* Progress steps */
-    .progress-steps {
-      display: flex;
-      align-items: center;
-      gap: 0;
-      margin-bottom: 24px;
+    /* --- Top bar --- */
+    .top-bar {
+      height: 64px; flex-shrink: 0;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center;
+      padding: 0 28px; gap: 20px;
     }
-    .progress-step { display: flex; flex-direction: column; align-items: center; gap: 5px; }
-    .progress-dot {
-      width: 28px; height: 28px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      font-weight: 600;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: #555;
+    .top-bar-left {
+      display: flex; align-items: center; gap: 10px; min-width: 0;
     }
-    .progress-dot.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-    .progress-dot.done { background: rgba(34,197,94,0.15); border-color: rgba(34,197,94,0.3); color: var(--success); }
-    .progress-label { font-size: 11px; color: #555; white-space: nowrap; }
-    .progress-label.active { color: var(--text); }
-    .progress-connector {
-      flex: 1;
-      height: 1px;
-      background: var(--border);
-      margin-bottom: 16px;
-      min-width: 24px;
+    .top-bar-title {
+      font-size: 15px; font-weight: var(--fw-bold); letter-spacing: -.02em;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
+    .top-bar-badge {
+      background: #1a1a1a; border: 1px solid var(--border);
+      padding: 3px 8px; border-radius: 4px;
+      font-size: 11px; color: #666;
+      text-transform: uppercase; letter-spacing: .05em;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .top-bar-center { flex: 1; display: flex; align-items: center; justify-content: center; }
+    .top-bar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 
-    /* Welcome screen */
-    .welcome-screen {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 60vh;
-      text-align: center;
-      gap: 14px;
-    }
-    .welcome-logo { font-size: 32px; font-weight: 800; letter-spacing: -0.04em; }
-    .welcome-subtitle { font-size: 15px; color: var(--muted); max-width: 380px; line-height: 1.6; }
-    .welcome-btn {
-      margin-top: 8px;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 12px 24px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s;
-      font-family: inherit;
-    }
-    .welcome-btn:hover { background: var(--accent-h); }
-    .welcome-steps {
-      display: flex;
-      gap: 28px;
-      margin-top: 12px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-    .welcome-step {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-      color: var(--muted);
-    }
-    .welcome-step-num {
-      width: 22px; height: 22px;
-      border-radius: 50%;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      font-size: 11px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--accent);
-    }
-
-    /* Buttons */
-    .btn { padding: 8px 14px; border-radius: 7px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: background 0.15s, opacity 0.15s; }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-primary { background: var(--accent); color: #fff; }
-    .btn-primary:hover:not(:disabled) { background: var(--accent-h); }
-    .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
-    .btn-secondary:hover:not(:disabled) { background: rgba(255,255,255,0.05); }
-    .btn-approve { background: rgba(34,197,94,0.12); color: var(--success); border: 1px solid rgba(34,197,94,0.2); }
-    .btn-approve:hover { background: rgba(34,197,94,0.2); }
-    .btn-danger { background: rgba(239,68,68,0.1); color: var(--danger); border: none; border-radius: 7px; padding: 8px 14px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; transition: background 0.15s; }
-    .btn-danger:hover { background: rgba(239,68,68,0.18); }
-    .btn-sm { padding: 5px 10px; font-size: 12px; }
-
-    /* Forms */
-    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
-    .form-group label { font-size: 13px; color: var(--muted); }
-    .form-group textarea, .form-group select, .form-group input {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      padding: 10px 12px;
-      font-size: 13px;
-      outline: none;
-      font-family: inherit;
-      transition: border-color 0.15s;
-    }
-    .form-group textarea { resize: vertical; min-height: 100px; }
-    .form-group textarea:focus, .form-group select:focus, .form-group input:focus { border-color: var(--accent); }
-    .field-hint { font-size: 12px; color: #555; }
-    .mode-note { font-size: 12px; color: var(--muted); background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 7px; padding: 8px 12px; margin-bottom: 12px; line-height: 1.5; }
-
-    /* Modals */
-    .modal-overlay {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,0.6);
-      z-index: 500;
+    /* Compact progress in top bar */
+    #progressBar {
       display: none;
       align-items: center;
-      justify-content: center;
-      padding: 24px;
+      gap: 0;
+    }
+    #progressBar.visible { display: flex; }
+    .pc-step {
+      width: 26px; height: 26px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: var(--fw-bold);
+      background: #1a1a1a; border: 1.5px solid #333; color: #555;
+      flex-shrink: 0; position: relative; cursor: default;
+    }
+    .pc-step.active { background: var(--accent); border-color: var(--accent); color: var(--text-card); }
+    .pc-step.done { background: rgba(69,160,85,.15); border-color: var(--accent-green); color: var(--accent-green); }
+    .pc-step-label {
+      position: absolute; bottom: -17px;
+      font-size: 9px; white-space: nowrap; color: #555;
+    }
+    .pc-step.active .pc-step-label { color: var(--accent); }
+    .pc-connector { width: 28px; height: 1.5px; background: #333; flex-shrink: 0; }
+    .pc-connector.done { background: var(--accent-green); }
+
+    /* Export button */
+    .btn-export {
+      background: var(--accent); color: var(--text-card);
+      border: var(--border-width) solid var(--text-card);
+      border-radius: var(--radius-pill); padding: 8px 18px;
+      font-size: 12px; font-weight: var(--fw-bold); cursor: pointer;
+      font-family: inherit; text-transform: uppercase; letter-spacing: .04em;
+      text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+      transition: background .15s, transform .1s;
+    }
+    .btn-export:hover:not(:disabled) { background: var(--accent-dark); transform: translateY(-1px); }
+    .btn-export:disabled {
+      opacity: .3; cursor: not-allowed; pointer-events: none;
+    }
+
+    /* --- Project actions bar --- */
+    .project-actions-bar {
+      flex-shrink: 0; display: none;
+      padding: 10px 28px; border-bottom: 1px solid var(--border);
+      gap: 8px; align-items: center; flex-wrap: wrap;
+    }
+    .project-actions-bar.visible { display: flex; }
+
+    /* Buttons inside actions bar */
+    .btn { padding: 8px 16px; border-radius: var(--radius-pill); font-size: 12px; font-weight: var(--fw-bold); cursor: pointer; border: none; font-family: inherit; text-transform: uppercase; letter-spacing: .04em; transition: background .15s, opacity .15s; }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: var(--text-card); border: var(--border-width) solid var(--text-card); }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-dark); }
+    .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover:not(:disabled) { border-color: #444; }
+    .btn-danger { background: transparent; color: var(--danger); border: 1px solid rgba(255,68,68,.3); border-radius: var(--radius-pill); padding: 8px 16px; font-size: 12px; font-weight: var(--fw-bold); cursor: pointer; font-family: inherit; text-transform: uppercase; transition: background .15s; }
+    .btn-danger:hover { background: rgba(255,68,68,.08); }
+    .btn-sm { padding: 5px 12px; font-size: 11px; }
+
+    .error { color: var(--danger); font-size: 13px; }
+
+    /* --- Main canvas (dot-grid) --- */
+    .main-canvas {
+      flex: 1; position: relative; overflow: hidden;
+      background-image: radial-gradient(#222 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+
+    /* ======================================================
+       WELCOME SCREEN
+    ====================================================== */
+    #welcomeScreen {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 40px; gap: 16px;
+      overflow-y: auto;
+    }
+    .welcome-logo { font-size: 48px; font-weight: var(--fw-bold); letter-spacing: -.04em; }
+    .welcome-logo span { color: var(--accent); }
+    .welcome-sub { font-size: 16px; color: var(--muted); max-width: 400px; text-align: center; line-height: 1.65; }
+    .welcome-btn {
+      margin-top: 8px;
+      background: var(--accent); color: var(--text-card);
+      border: var(--border-width) solid var(--text-card);
+      border-radius: var(--radius-pill); padding: 13px 32px;
+      font-size: 14px; font-weight: var(--fw-bold); cursor: pointer;
+      font-family: inherit; text-transform: uppercase; letter-spacing: .04em;
+      transition: background .15s, transform .1s;
+    }
+    .welcome-btn:hover { background: var(--accent-dark); transform: translateY(-1px); }
+    .welcome-steps {
+      display: flex; gap: 24px; margin-top: 8px;
+      flex-wrap: wrap; justify-content: center;
+    }
+    .welcome-step { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+    .welcome-step-num {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: #111; border: 1.5px solid #333;
+      font-size: 11px; font-weight: var(--fw-bold);
+      display: flex; align-items: center; justify-content: center; color: var(--accent);
+    }
+
+    /* ======================================================
+       CREATE VIEW (inline form)
+    ====================================================== */
+    #createView {
+      position: absolute; inset: 0;
+      display: none; flex-direction: column;
+      align-items: center; justify-content: flex-start;
+      padding: 40px 24px; overflow-y: auto;
+    }
+    .create-form-wrap {
+      width: 100%; max-width: 560px;
+      display: flex; flex-direction: column; gap: 0;
+    }
+    .create-form-title {
+      font-size: 22px; font-weight: var(--fw-bold); letter-spacing: -.03em;
+      margin-bottom: 6px;
+    }
+    .create-form-sub { font-size: 14px; color: var(--muted); margin-bottom: 28px; }
+
+    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .form-group label { font-size: 12px; color: var(--muted); font-weight: var(--fw-medium); text-transform: uppercase; letter-spacing: .06em; }
+    .form-group textarea, .form-group select, .form-group input {
+      background: #0d0d0d; border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text);
+      padding: 11px 14px; font-size: 14px; outline: none;
+      font-family: inherit; transition: border-color .15s;
+    }
+    .form-group textarea { resize: vertical; min-height: 110px; }
+    .form-group textarea:focus, .form-group select:focus, .form-group input:focus { border-color: var(--accent); }
+    .form-group select { cursor: pointer; }
+    .field-hint { font-size: 12px; color: #444; }
+    .mode-note {
+      font-size: 12px; color: var(--muted);
+      background: rgba(255,255,255,.03); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 8px 12px;
+      margin-bottom: 14px; line-height: 1.5;
+    }
+    .create-form-actions {
+      display: flex; align-items: center; gap: 12px; margin-top: 8px;
+    }
+    .create-submit {
+      background: var(--accent); color: var(--text-card);
+      border: var(--border-width) solid var(--text-card);
+      border-radius: var(--radius-pill); padding: 12px 28px;
+      font-size: 13px; font-weight: var(--fw-bold); cursor: pointer;
+      font-family: inherit; text-transform: uppercase; letter-spacing: .04em;
+      display: flex; align-items: center; gap: 8px;
+      transition: background .15s;
+    }
+    .create-submit:hover { background: var(--accent-dark); }
+    .create-submit:disabled { opacity: .5; cursor: not-allowed; }
+    .create-cancel-link {
+      font-size: 13px; color: var(--muted); cursor: pointer;
+      background: none; border: none; font-family: inherit; padding: 0;
+      transition: color .15s;
+    }
+    .create-cancel-link:hover { color: var(--text); }
+
+    /* ======================================================
+       PROJECT VIEW + TIMELINE
+    ====================================================== */
+    #projectView {
+      position: absolute; inset: 0;
+      display: none; flex-direction: column; overflow: hidden;
+    }
+    .error-banner {
+      flex-shrink: 0; padding: 8px 28px;
+      background: rgba(255,68,68,.08); border-bottom: 1px solid rgba(255,68,68,.2);
+      font-size: 13px; color: var(--danger);
+      display: none;
+    }
+    .error-banner.visible { display: block; }
+
+    .timeline-scroll {
+      flex: 1; overflow-x: auto; overflow-y: hidden;
+      display: flex; align-items: center; padding: 48px 48px 64px;
+    }
+    .timeline-scroll::-webkit-scrollbar { height: 6px; }
+    .timeline-scroll::-webkit-scrollbar-track { background: transparent; }
+    .timeline-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+    .timeline-scroll::-webkit-scrollbar-thumb:hover { background: #555; }
+
+    .timeline-track {
+      display: flex; align-items: center;
+      gap: 0; padding-right: 120px; min-height: 280px;
+    }
+    .timeline-empty {
+      color: #333; font-size: 14px; font-weight: var(--fw-medium);
+      padding: 20px; white-space: nowrap;
+    }
+
+    /* --- Frame Card --- */
+    .frame-card {
+      width: 300px; background: var(--card);
+      border-radius: var(--radius-card);
+      border: var(--border-width) solid var(--card-border);
+      padding: 12px;
+      display: flex; flex-direction: column; gap: 10px;
+      flex-shrink: 0; position: relative;
+      box-shadow: 0 12px 32px rgba(0,0,0,.5);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .frame-card:hover { transform: translateY(-4px); box-shadow: 0 18px 40px rgba(0,0,0,.6); }
+    .frame-card.is-approved { border-color: var(--accent-green); }
+    .frame-card.is-locked { opacity: .4; pointer-events: none; }
+
+    .frame-preview {
+      width: 100%; aspect-ratio: 16/9;
+      background: #F0F0F0; border-radius: 8px;
+      overflow: hidden; position: relative;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid #E5E5E5;
+    }
+    .frame-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .frame-placeholder {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      background-image: repeating-linear-gradient(45deg, #eee 0, #eee 10px, #f5f5f5 10px, #f5f5f5 20px);
+    }
+    .frame-num-label {
+      font-size: 88px; font-weight: var(--fw-bold);
+      color: #D8D8D8; line-height: 1; user-select: none;
+      font-family: var(--font);
+    }
+
+    /* Sticker badges on preview */
+    .sticker-badge {
+      position: absolute; bottom: 8px; right: 8px;
+      background: var(--accent-pink); color: var(--text-card);
+      border: 1px solid var(--text-card); border-radius: var(--radius-pill);
+      padding: 4px 10px; font-size: 11px; font-weight: var(--fw-bold);
+      box-shadow: 2px 2px 0 rgba(0,0,0,.1); z-index: 2;
+    }
+    .sticker-approved {
+      position: absolute; top: 8px; right: 8px;
+      background: var(--accent-green); color: #fff;
+      border: 1px solid rgba(255,255,255,.3);
+      border-radius: var(--radius-pill); padding: 3px 8px;
+      font-size: 10px; font-weight: var(--fw-bold); z-index: 2;
+    }
+
+    /* Frame card content */
+    .frame-content { padding: 2px 4px; display: flex; flex-direction: column; gap: 6px; }
+    .frame-desc {
+      color: var(--text-card); font-size: 13px; line-height: 1.4;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .frame-prompt-text {
+      font-size: 11px; color: #999; cursor: pointer; line-height: 1.35;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      transition: color .15s;
+    }
+    .frame-prompt-text:hover { color: #666; }
+    .frame-prompt-edit {
+      display: none; width: 100%;
+      background: #F5F5F5; border: 1.5px solid #DDD;
+      border-radius: var(--radius-sm); color: var(--text-card);
+      padding: 8px 10px; font-size: 12px; font-family: inherit;
+      resize: vertical; min-height: 60px; margin-top: 2px;
+      transition: border-color .15s;
+    }
+    .frame-prompt-edit:focus { border-color: #999; outline: none; }
+    .frame-prompt-edit.is-visible { display: block; }
+    .frame-prompt-edit-visible { display: block !important; }
+
+    .frame-vidprompt { display: flex; flex-direction: column; gap: 4px; }
+    .frame-vidprompt-label { font-size: 10px; color: var(--muted-card); text-transform: uppercase; letter-spacing: .06em; }
+
+    .frame-error { font-size: 11px; color: var(--danger); line-height: 1.3; }
+
+    /* Frame actions row */
+    .frame-actions {
+      display: flex; align-items: center; gap: 6px;
+      border-top: 1px solid #EEE; padding-top: 10px; margin-top: 2px;
+    }
+    .icon-btn {
+      background: transparent; border: none; cursor: pointer;
+      padding: 5px; border-radius: 6px;
+      color: #AAA; transition: background .15s, color .15s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .icon-btn svg { width: 15px; height: 15px; }
+    .icon-btn:hover { background: #F0F0F0; color: #000; }
+    .btn-regen {
+      margin-left: auto; color: var(--text-card); font-weight: var(--fw-bold);
+      font-size: 11px; display: flex; align-items: center; gap: 4px;
+      letter-spacing: .04em; text-transform: uppercase;
+    }
+    .btn-regen svg { width: 13px; height: 13px; }
+    .frame-approve-btn {
+      margin-left: auto;
+      background: var(--accent); color: var(--text-card);
+      border: var(--border-width) solid var(--text-card);
+      border-radius: var(--radius-pill); padding: 5px 12px;
+      font-size: 11px; font-weight: var(--fw-bold); cursor: pointer;
+      font-family: inherit; text-transform: uppercase; letter-spacing: .04em;
+      transition: background .15s;
+    }
+    .frame-approve-btn:hover { background: var(--accent-dark); }
+    .frame-action-clip {
+      background: var(--accent-green); color: #fff;
+      border: none; border-radius: var(--radius-pill); padding: 5px 12px;
+      font-size: 11px; font-weight: var(--fw-bold); cursor: pointer;
+      font-family: inherit; text-transform: uppercase; transition: opacity .15s;
+    }
+    .frame-action-clip:hover { opacity: .85; }
+    .frame-action-hint { font-size: 11px; color: #CCC; }
+
+    /* Frame status */
+    .frame-status {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: var(--fw-semibold); text-transform: uppercase;
+    }
+    .frame-status.generating { color: var(--warning); }
+    .frame-status.done { color: var(--accent-green); }
+
+    /* --- Transition node (pro mode) --- */
+    .transition-node {
+      display: flex; align-items: center; justify-content: center;
+      width: 72px; flex-shrink: 0; position: relative;
+    }
+    .transition-line { flex: 1; height: 2px; background: #2a2a2a; }
+    .transition-pill {
+      background: var(--accent-green); color: var(--text-card);
+      border: 1px solid var(--text-card); border-radius: 10px;
+      padding: 4px 10px; font-size: 10px; font-weight: var(--fw-bold);
+      cursor: pointer; white-space: nowrap;
+      transform: rotate(-5deg);
+      transition: transform .2s;
+      position: absolute;
+    }
+    .transition-pill:hover { transform: scale(1.1) rotate(0deg); }
+    .transition-pill.pill-done { background: var(--accent-green); }
+    .transition-pill.pill-generating { background: var(--warning); }
+    .transition-pill.pill-error { background: var(--danger); color: #fff; }
+
+    /* --- Simple connector between scenes (non-pro) --- */
+    .scene-connector {
+      display: flex; align-items: center;
+      width: 32px; flex-shrink: 0;
+    }
+    .connector-line { flex: 1; height: 2px; background: #2a2a2a; }
+
+    /* ======================================================
+       MODALS
+    ====================================================== */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.7); z-index: 500;
+      display: none; align-items: center; justify-content: center; padding: 24px;
     }
     .modal-overlay.visible { display: flex; }
     .modal {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 28px;
-      width: 100%;
-      max-width: 480px;
-      max-height: 90vh;
-      overflow-y: auto;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-card); padding: 28px;
+      width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
+      position: relative;
     }
-    .modal-title { font-size: 17px; font-weight: 600; margin-bottom: 20px; }
+    .modal-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      margin-bottom: 20px; gap: 12px;
+    }
+    .modal-title { font-size: 17px; font-weight: var(--fw-bold); }
+    .modal-close {
+      background: none; border: none; color: var(--muted); cursor: pointer;
+      padding: 2px; border-radius: 4px; flex-shrink: 0;
+      transition: color .15s;
+    }
+    .modal-close:hover { color: var(--text); }
     .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
-    .btn-cancel { background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 7px; padding: 8px 14px; font-size: 13px; cursor: pointer; font-family: inherit; }
+    .btn-cancel {
+      background: transparent; color: var(--muted);
+      border: 1px solid var(--border); border-radius: var(--radius-pill);
+      padding: 8px 16px; font-size: 12px; font-weight: var(--fw-bold);
+      cursor: pointer; font-family: inherit; text-transform: uppercase;
+      transition: color .15s;
+    }
     .btn-cancel:hover { color: var(--text); }
 
-    /* Project view */
-    .project-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-    .project-header h2 { font-size: 20px; font-weight: 700; }
-    #projectScenario { font-size: 13px; color: var(--muted); margin-bottom: 24px; line-height: 1.6; max-width: 720px; }
-    .project-actions { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
-
     /* Status badges */
-    .status-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
-    .status-pending { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
-    .status-scenes_ready { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
-    .status-generating { background: rgba(234,179,8,0.1); color: #eab308; border: 1px solid rgba(234,179,8,0.2); }
-    .status-generating_videos { background: rgba(234,179,8,0.1); color: #eab308; border: 1px solid rgba(234,179,8,0.2); }
-    .status-rendering { background: rgba(234,179,8,0.1); color: #eab308; border: 1px solid rgba(234,179,8,0.2); }
-    .status-done { background: rgba(37,99,235,0.1); color: #60a5fa; border: 1px solid rgba(37,99,235,0.2); }
-    .status-approved { background: rgba(34,197,94,0.1); color: var(--success); border: 1px solid rgba(34,197,94,0.2); }
-    .status-videos_ready { background: rgba(37,99,235,0.1); color: #60a5fa; border: 1px solid rgba(37,99,235,0.2); }
-    .status-rendered { background: rgba(34,197,94,0.1); color: var(--success); border: 1px solid rgba(34,197,94,0.2); }
-    .status-error { background: rgba(239,68,68,0.1); color: #fca5a5; border: 1px solid rgba(239,68,68,0.2); }
+    .status-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: var(--fw-semibold); text-transform: uppercase; letter-spacing: .04em; }
+    .status-pending       { background: #1a1a1a; color: #555; border: 1px solid var(--border); }
+    .status-scenes_ready  { background: #1a1a1a; color: #555; border: 1px solid var(--border); }
+    .status-generating    { background: rgba(245,166,35,.1); color: var(--warning); border: 1px solid rgba(245,166,35,.2); }
+    .status-generating_videos { background: rgba(245,166,35,.1); color: var(--warning); border: 1px solid rgba(245,166,35,.2); }
+    .status-rendering     { background: rgba(245,166,35,.1); color: var(--warning); border: 1px solid rgba(245,166,35,.2); }
+    .status-done          { background: rgba(212,255,69,.08); color: var(--accent); border: 1px solid rgba(212,255,69,.2); }
+    .status-approved      { background: rgba(69,160,85,.12); color: var(--accent-green); border: 1px solid rgba(69,160,85,.25); }
+    .status-videos_ready  { background: rgba(212,255,69,.08); color: var(--accent); border: 1px solid rgba(212,255,69,.2); }
+    .status-rendered      { background: rgba(69,160,85,.12); color: var(--accent-green); border: 1px solid rgba(69,160,85,.25); }
+    .status-error         { background: rgba(255,68,68,.1); color: #ff8888; border: 1px solid rgba(255,68,68,.2); }
 
-    .error-msg { font-size: 12px; color: #fca5a5; background: rgba(239,68,68,0.08); padding: 6px 10px; border-radius: 6px; margin-bottom: 6px; line-height: 1.4; }
-    .error { color: var(--danger); font-size: 13px; margin-top: 8px; }
-    .empty { color: #555; text-align: center; padding: 40px; font-size: 14px; }
-
-    /* Scenes grid */
-    .scenes-grid { display: flex; overflow-x: auto; gap: 12px; padding-bottom: 12px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
-    .scenes-grid::-webkit-scrollbar { height: 4px; }
-    .scenes-grid::-webkit-scrollbar-track { background: transparent; }
-    .scenes-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-    .scene-card { flex: 0 0 210px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; transition: border-color 0.2s; scroll-snap-align: start; display: flex; flex-direction: column; }
-    .scene-card:hover { border-color: #3a3a3a; }
-    .scene-card.approved { border-color: rgba(34,197,94,0.35); }
-    .scene-card img { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: var(--bg); display: block; }
-    .scene-card .placeholder { width: 100%; aspect-ratio: 16/9; background: var(--bg); display: flex; align-items: center; justify-content: center; color: #444; font-size: 12px; }
-
-    .scene-card.transition-card { flex: 0 0 72px; background: transparent; border: 1px dashed var(--border); justify-content: center; align-items: center; gap: 6px; }
-    .transition-arrow { font-size: 22px; color: var(--muted); }
-    .transition-label { font-size: 10px; color: #555; text-align: center; line-height: 1.4; }
-
-    .scene-info { padding: 10px; flex: 1; display: flex; flex-direction: column; }
-    .scene-number { font-size: 11px; color: var(--muted); margin-bottom: 4px; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
-    .scene-desc { font-size: 12px; margin-bottom: 6px; line-height: 1.4; color: var(--text); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; flex: 1; }
-    .scene-subtitle { font-size: 11px; color: var(--muted); font-style: italic; margin-bottom: 6px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .scene-prompt { font-size: 10px; color: #444; margin-bottom: 6px; word-break: break-word; line-height: 1.3; cursor: pointer; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .scene-prompt:hover { color: #666; }
-    .scene-actions { display: flex; gap: 4px; flex-wrap: wrap; margin-top: auto; padding-top: 6px; }
-
-    .prompt-edit { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 6px 8px; font-size: 11px; margin-bottom: 6px; resize: vertical; height: 54px; display: none; font-family: inherit; }
-    .prompt-edit.visible { display: block; }
-
-    /* Scrollbar */
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-    ::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
+    /* Hidden but in DOM (needed by JS) */
+    #projectScenario { display: none; }
+    #projectTitle    { display: none; }
+    #projectStatus   { display: none; }
+    #downloadBtn     { display: none; }
   </style>
 </head>
 <body>
@@ -799,7 +819,7 @@
     <div class="l-logo">AnimatAI</div>
     <div class="l-nav-links">
       <button class="btn-ghost" onclick="showView('login')">Войти</button>
-      <button class="btn-solid" onclick="showView('register')">Создать аккаунт</button>
+      <button class="btn-solid-landing" onclick="showView('register')">Создать аккаунт</button>
     </div>
   </nav>
 
@@ -834,7 +854,7 @@
     </div>
   </div>
 
-  <div class="l-section" style="padding-bottom: 100px;">
+  <div class="l-section" style="padding-bottom:100px;">
     <div class="l-section-label">Режимы</div>
     <div class="l-grid-4">
       <div class="l-mode">
@@ -895,7 +915,6 @@
   <button class="auth-back" onclick="showView('landing')">← Назад</button>
   <div class="auth-view">
     <div class="auth-card">
-
       <div class="auth-logo">AnimatAI</div>
       <div class="auth-title">Создать аккаунт</div>
       <div class="auth-subtitle">Бесплатно. Без кредитной карты.</div>
@@ -908,13 +927,12 @@
         <input id="regUsername" type="text" placeholder="username" autocomplete="username" />
       </div>
       <div class="auth-field" style="margin-bottom:20px;">
-        <label>Пароль <span style="color:#555;font-size:12px;">(минимум 8 символов)</span></label>
+        <label>Пароль <span style="color:#999;font-size:12px;font-weight:400;">(минимум 8 символов)</span></label>
         <input id="regPassword" type="password" placeholder="••••••••" autocomplete="new-password" onkeydown="if(event.key==='Enter')register()" />
       </div>
       <div class="auth-error" id="regError"></div>
       <button class="auth-submit" id="regBtn" onclick="register()">Создать аккаунт →</button>
       <div class="auth-switch">Уже есть аккаунт? <span class="auth-link" onclick="showView('login')">Войти</span></div>
-
     </div>
   </div>
 </div>
@@ -936,33 +954,77 @@
 
   <!-- Sidebar -->
   <div class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <button class="sidebar-toggle" onclick="toggleSidebar()" title="Свернуть">←</button>
-      <button class="new-project-btn" onclick="showCreateModal()">+ Новый мультфильм</button>
-    </div>
-    <div class="sidebar-projects" id="projectList">
-      <div class="sidebar-empty">Нет мультфильмов<br><span style="font-size:12px;">Создайте первый мультфильм</span></div>
-    </div>
-    <div class="sidebar-footer">
-      <button class="logout-btn" onclick="showApiKeysModal()" id="apiKeysBtn" style="margin-bottom:8px;">
-        <span id="apiKeysBtnIcon">🔑</span> API-ключи
+    <div class="sidebar-brand">
+      <button class="sidebar-toggle" onclick="toggleSidebar()" title="Свернуть">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
-      <button class="logout-btn" onclick="logout()">Выйти</button>
+      <span class="brand-name">AnimatAI</span>
+    </div>
+
+    <button class="sidebar-new-btn" onclick="showCreateView()">+ Новый мультфильм</button>
+
+    <div class="sidebar-section-header">История</div>
+    <div class="sidebar-projects" id="projectList">
+      <div class="sidebar-empty">Нет мультфильмов<br><span style="font-size:12px;">Создайте первый</span></div>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="sidebar-footer-btn" onclick="showApiKeysModal()" id="apiKeysBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="3"/><path d="M14 7l-7.5 7.5"/><path d="m17 4-3 3"/><path d="m21 4-1.5 1.5"/></svg>
+        <span id="apiKeysBtnLabel">API-ключи</span>
+      </button>
+      <button class="sidebar-footer-btn" onclick="logout()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Выйти
+      </button>
     </div>
   </div>
 
-  <!-- Expand button when sidebar is collapsed -->
-  <button class="sidebar-open-toggle" id="sidebarOpenToggle" onclick="toggleSidebar()" title="Открыть меню">☰</button>
+  <!-- Expand toggle (shown when sidebar collapsed) -->
+  <button class="sidebar-open-toggle" id="sidebarOpenToggle" onclick="toggleSidebar()" title="Открыть меню">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
 
   <!-- Main area -->
-  <div class="main">
-    <div class="main-content">
+  <div class="main-area">
 
-      <!-- Welcome screen -->
-      <div id="welcomeScreen" class="welcome-screen">
-        <div class="welcome-logo">AnimatAI</div>
-        <div class="welcome-subtitle">Превратите сценарий в мультфильм за несколько кликов.</div>
-        <button class="welcome-btn" onclick="showCreateModal()">Создать мультфильм</button>
+    <!-- Top bar -->
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <div class="top-bar-title" id="topBarTitle">AnimatAI</div>
+        <div class="top-bar-badge" id="topBarBadge" style="display:none;"></div>
+      </div>
+      <div class="top-bar-center">
+        <div id="progressBar"></div>
+      </div>
+      <div class="top-bar-right">
+        <a class="btn-export" id="exportBtn" href="#" style="opacity:.25;pointer-events:none;" title="Сначала сгенерируйте видео полностью">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Экспорт
+        </a>
+      </div>
+    </header>
+
+    <!-- Project action buttons (shown when project open) -->
+    <div class="project-actions-bar" id="projectActionsBar">
+      <button class="btn btn-primary btn-sm" id="generateBtn" onclick="generateImages()">Создать кадры</button>
+      <button class="btn btn-primary btn-sm" id="videoBtn" style="display:none;" onclick="generateVideos()">Оживить сцены</button>
+      <button class="btn-danger btn-sm" id="resetVideoBtn" style="display:none;" onclick="resetVideoGeneration()">Сбросить генерацию</button>
+      <button class="btn btn-primary btn-sm" id="renderBtn" style="display:none;" onclick="renderFinalVideo()">Собрать видео</button>
+      <!-- hidden elements kept for JS compat -->
+      <a id="downloadBtn" href="#" style="display:none;"></a>
+      <span id="projectTitle" style="display:none;"></span>
+      <span id="projectStatus" style="display:none;"></span>
+    </div>
+
+    <!-- Canvas -->
+    <div class="main-canvas">
+
+      <!-- Welcome -->
+      <div id="welcomeScreen">
+        <div class="welcome-logo">Animat<span>AI</span></div>
+        <div class="welcome-sub">Превратите сценарий в мультфильм за несколько кликов.</div>
+        <button class="welcome-btn" onclick="showCreateView()">Создать мультфильм</button>
         <div class="welcome-steps">
           <div class="welcome-step"><div class="welcome-step-num">1</div><span>Напишите сценарий</span></div>
           <div class="welcome-step"><div class="welcome-step-num">2</div><span>Одобрите кадры</span></div>
@@ -970,87 +1032,82 @@
         </div>
       </div>
 
-      <!-- Project view -->
-      <div id="projectView" style="display:none;">
-        <div id="progressBar" class="progress-steps"></div>
-        <div class="project-header">
-          <h2 id="projectTitle"></h2>
-          <span id="projectStatus" class="status-badge"></span>
+      <!-- Create project (inline) -->
+      <div id="createView">
+        <div class="create-form-wrap">
+          <div class="create-form-title">Новый мультфильм</div>
+          <div class="create-form-sub">Опишите историю — ИИ разобьёт её на сцены и создаст кадры.</div>
+
+          <div class="form-group">
+            <label>Сценарий</label>
+            <textarea id="scenarioInput" placeholder="Напишите историю — что происходит, кто герои, какая обстановка"></textarea>
+            <div class="field-hint">Чем подробнее, тем лучше результат</div>
+          </div>
+          <div class="form-group">
+            <label>Режим</label>
+            <select id="modeInput" onchange="toggleModeOptions()">
+              <option value="freetrial">Free Trial — 2 сцены, быстрый результат</option>
+              <option value="standard">Standard — до 20 сцен</option>
+              <option value="pro">Pro — бесшовные переходы</option>
+              <option value="deluxe">Deluxe — озвучка и субтитры</option>
+            </select>
+          </div>
+          <div id="freetrialNote" class="mode-note">2 сцены по 5 секунд · субтитры · быстро</div>
+          <div id="proDurationNote" class="mode-note" style="display:none;">3 сцены + 2 перехода · бесшовное видео ~25с</div>
+          <div id="deluxeNote" class="mode-note" style="display:none;">3 клипа цепочкой · видео с озвучкой и субтитрами ~15с</div>
+          <div id="voiceGroup" class="mode-note" style="display:none;">Голоса назначаются автоматически на основе диалогов в сценарии</div>
+          <div class="form-group">
+            <label>Стиль</label>
+            <select id="styleInput">
+              <option value="anime">2D Аниме</option>
+              <option value="cartoon">2D Мультфильм</option>
+              <option value="pixar">Pixar 3D</option>
+            </select>
+          </div>
+          <div class="form-group" id="durationGroup" style="display:none;">
+            <label>Длительность</label>
+            <select id="durationInput">
+              <option value="30">30 секунд (~5 сцен)</option>
+              <option value="60">1 минута (~10 сцен)</option>
+              <option value="120">2 минуты (~20 сцен)</option>
+            </select>
+          </div>
+          <div class="error" id="createError" style="margin-bottom:12px;"></div>
+          <div class="create-form-actions">
+            <button class="create-submit" id="createBtn" onclick="createProject()">Создать →</button>
+            <button class="create-cancel-link" onclick="cancelCreate()">Отмена</button>
+          </div>
         </div>
+      </div>
+
+      <!-- Project timeline -->
+      <div id="projectView">
         <p id="projectScenario"></p>
-        <div class="project-actions">
-          <button class="btn btn-primary" id="generateBtn" onclick="generateImages()">Создать кадры</button>
-          <button class="btn btn-primary" id="videoBtn" style="display:none;" onclick="generateVideos()">Оживить сцены</button>
-          <button class="btn-danger" id="resetVideoBtn" style="display:none;" onclick="resetVideoGeneration()">Сбросить генерацию</button>
-          <button class="btn btn-primary" id="renderBtn" style="display:none;" onclick="renderFinalVideo()">Собрать видео</button>
-          <a class="btn btn-primary" id="downloadBtn" style="display:none;text-decoration:none;" href="#">⬇ Скачать видео</a>
+        <div id="generateError" class="error-banner"></div>
+        <div class="timeline-scroll">
+          <div class="timeline-track" id="scenesContainer"></div>
         </div>
-        <div id="generateError" class="error"></div>
-        <div id="scenesContainer" class="scenes-grid"></div>
       </div>
 
-    </div>
-  </div>
-
-  <!-- Modal: Create project -->
-  <div class="modal-overlay" id="createModal">
-    <div class="modal">
-      <div class="modal-title">Новый мультфильм</div>
-      <div class="form-group">
-        <label>Сценарий</label>
-        <textarea id="scenarioInput" placeholder="Напишите историю — что происходит, кто герои, какая обстановка"></textarea>
-        <div class="field-hint">Чем подробнее, тем лучше результат</div>
-      </div>
-      <div class="form-group">
-        <label>Режим</label>
-        <select id="modeInput" onchange="toggleModeOptions()">
-          <option value="freetrial">Free Trial — 2 сцены, быстрый результат</option>
-          <option value="standard">Standard — до 20 сцен</option>
-          <option value="pro">Pro — бесшовные переходы</option>
-          <option value="deluxe">Deluxe — озвучка и субтитры</option>
-        </select>
-      </div>
-      <div id="freetrialNote" class="mode-note">2 сцены по 5 секунд · субтитры · быстро</div>
-      <div id="proDurationNote" class="mode-note" style="display:none;">3 сцены + 2 перехода · бесшовное видео ~25с</div>
-      <div id="deluxeNote" class="mode-note" style="display:none;">3 клипа цепочкой · видео с озвучкой и субтитрами ~15с</div>
-      <div id="voiceGroup" class="mode-note" style="display:none;">Голоса назначаются автоматически на основе диалогов в сценарии</div>
-      <div class="form-group">
-        <label>Стиль</label>
-        <select id="styleInput">
-          <option value="anime">2D Аниме</option>
-          <option value="cartoon">2D Мультфильм</option>
-          <option value="pixar">Pixar 3D</option>
-        </select>
-      </div>
-      <div class="form-group" id="durationGroup" style="display:none;">
-        <label>Длительность</label>
-        <select id="durationInput">
-          <option value="30">30 секунд (~5 сцен)</option>
-          <option value="60">1 минута (~10 сцен)</option>
-          <option value="120">2 минуты (~20 сцен)</option>
-        </select>
-      </div>
-      <div id="createError" class="error"></div>
-      <div class="modal-actions">
-        <button class="btn-cancel" onclick="hideCreateModal()">Отмена</button>
-        <button class="btn btn-primary" id="createBtn" onclick="createProject()">Создать</button>
-      </div>
-    </div>
-  </div>
+    </div><!-- /main-canvas -->
+  </div><!-- /main-area -->
 
   <!-- Modal: API Keys -->
-  <div class="modal-overlay" id="apiKeysModal" onclick="if(event.target===this&&hasApiKeys())hideApiKeysModal()">
+  <div class="modal-overlay" id="apiKeysModal">
     <div class="modal" style="max-width:480px;">
-      <div class="modal-title">🔑 API-ключи для генерации</div>
+      <div class="modal-header">
+        <div class="modal-title">API-ключи для генерации</div>
+        <button class="modal-close" onclick="hideApiKeysModal()" title="Закрыть">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
 
       <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:20px;">
-        AnimatAI использует ваши личные API-ключи для генерации изображений и видео.
-        Ключи хранятся только в вашем браузере и никуда не отправляются кроме соответствующих сервисов.
+        AnimatAI использует ваши личные API-ключи. Ключи хранятся только в вашем браузере.
       </p>
 
-      <!-- fal.ai -->
       <div style="background:#111;border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px;">
-        <div style="font-size:13px;font-weight:600;margin-bottom:8px;">fal.ai — изображения и видео</div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px;">fal.ai — изображения и видео</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6;">
           1. Зайдите на <strong style="color:#aaa;">fal.ai</strong> → зарегистрируйтесь<br>
           2. Перейдите в <strong style="color:#aaa;">Dashboard → API Keys</strong><br>
@@ -1062,9 +1119,8 @@
         </div>
       </div>
 
-      <!-- OpenRouter -->
       <div style="background:#111;border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:6px;">
-        <div style="font-size:13px;font-weight:600;margin-bottom:8px;">OpenRouter — сценарий и изображения</div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px;">OpenRouter — сценарий и изображения</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6;">
           1. Зайдите на <strong style="color:#aaa;">openrouter.ai</strong> → зарегистрируйтесь<br>
           2. Перейдите в <strong style="color:#aaa;">Keys → Create Key</strong><br>
@@ -1079,7 +1135,7 @@
       <div id="apiKeysError" class="error" style="margin-top:10px;"></div>
       <div class="modal-actions">
         <button class="btn-cancel" onclick="hideApiKeysModal()" id="apiKeysCancelBtn">Отмена</button>
-        <button class="btn btn-primary" onclick="saveApiKeys()">Сохранить</button>
+        <button class="btn btn-primary btn-sm" onclick="saveApiKeys()">Сохранить</button>
       </div>
     </div>
   </div>
@@ -1105,7 +1161,6 @@ let refreshTokenStr = localStorage.getItem('refreshToken');
 // ===== API Keys =====
 let falKey = localStorage.getItem('falKey') || '';
 let openrouterKey = localStorage.getItem('openrouterKey') || '';
-
 function hasApiKeys() { return !!(falKey && openrouterKey); }
 
 // ===== View management =====
@@ -1126,13 +1181,11 @@ async function login() {
   const btn = document.getElementById('loginBtn');
   errEl.textContent = '';
   if (!email || !password) { errEl.textContent = 'Введите email и пароль'; return; }
-
   btn.disabled = true;
-  btn.innerHTML = '<span class="loading"></span> Вход...';
+  btn.innerHTML = '<span class="loading-dark"></span> Вход...';
   try {
     const r = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
     const data = await r.json();
@@ -1154,18 +1207,15 @@ async function register() {
   const password = document.getElementById('regPassword').value;
   const errEl = document.getElementById('regError');
   const btn = document.getElementById('regBtn');
-
   errEl.textContent = '';
   if (!email) { errEl.textContent = 'Введите email'; return; }
   if (!username) { errEl.textContent = 'Введите имя пользователя'; return; }
   if (password.length < 8) { errEl.textContent = 'Пароль минимум 8 символов'; return; }
-
   btn.disabled = true;
-  btn.innerHTML = '<span class="loading"></span> Создание аккаунта...';
+  btn.innerHTML = '<span class="loading-dark"></span> Создание аккаунта...';
   try {
     const r = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, username, password }),
     });
     const data = await r.json();
@@ -1211,8 +1261,7 @@ async function tryRefreshToken() {
   if (!refreshTokenStr) return false;
   try {
     const r = await fetch('/api/auth/refresh', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken: refreshTokenStr }),
     });
     if (!r.ok) return false;
@@ -1232,7 +1281,6 @@ async function api(url, options = {}) {
     return h;
   };
   const res = await fetch(url, { ...options, headers: makeHeaders() });
-
   if (res.status === 401) {
     const refreshed = await tryRefreshToken();
     if (refreshed) {
@@ -1241,12 +1289,9 @@ async function api(url, options = {}) {
       if (!res2.ok) throw new Error(data2.error || 'Request failed');
       return data2;
     } else {
-      clearTokens();
-      showView('landing');
-      throw new Error('Unauthorized');
+      clearTokens(); showView('landing'); throw new Error('Unauthorized');
     }
   }
-
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Request failed');
   return data;
@@ -1260,26 +1305,99 @@ function toggleSidebar() {
 }
 
 function updateApiKeysBtnState() {
-  const icon = document.getElementById('apiKeysBtnIcon');
-  if (icon) icon.textContent = hasApiKeys() ? '✅' : '🔑';
+  const label = document.getElementById('apiKeysBtnLabel');
+  if (label) label.textContent = hasApiKeys() ? 'API-ключи ✓' : 'API-ключи';
 }
 
-// ===== Welcome / navigation =====
+// ===== Top bar updater =====
+function updateTopBar(project) {
+  const titleEl = document.getElementById('topBarTitle');
+  const badgeEl = document.getElementById('topBarBadge');
+  const progressEl = document.getElementById('progressBar');
+  const exportBtn = document.getElementById('exportBtn');
+
+  if (!project) {
+    titleEl.textContent = 'AnimatAI';
+    badgeEl.style.display = 'none';
+    progressEl.classList.remove('visible');
+    exportBtn.style.opacity = '.25';
+    exportBtn.style.pointerEvents = 'none';
+    exportBtn.href = '#';
+    exportBtn.title = 'Сначала создайте и сгенерируйте проект';
+    return;
+  }
+
+  const modeLabel = project.mode === 'deluxe' ? 'Deluxe' : project.mode === 'pro' ? 'Pro' : project.mode === 'freetrial' ? 'Free Trial' : 'Standard';
+  titleEl.textContent = (project.name || project.scenario || 'Без названия').slice(0, 32);
+  badgeEl.textContent = `${modeLabel} · ${project.duration}с`;
+  badgeEl.style.display = '';
+  progressEl.classList.add('visible');
+
+  if (project.final_video_path) {
+    exportBtn.style.opacity = '';
+    exportBtn.style.pointerEvents = '';
+    exportBtn.href = `/api/projects/${project.id}/download`;
+    exportBtn.title = 'Скачать готовое видео';
+  } else {
+    exportBtn.style.opacity = '.25';
+    exportBtn.style.pointerEvents = 'none';
+    exportBtn.href = '#';
+    exportBtn.title = 'Сначала сгенерируйте видео полностью';
+  }
+}
+
+// ===== Progress bar =====
+function renderProgressBar(project) {
+  const steps = [
+    { label: 'Сценарий', statuses: ['created', 'scenes_ready'] },
+    { label: 'Кадры',    statuses: ['generating', 'done'] },
+    { label: 'Видео',    statuses: ['generating_videos', 'videos_ready'] },
+    { label: 'Готово',   statuses: ['rendering', 'rendered'] },
+  ];
+  const activeStep = steps.findIndex(s => s.statuses.includes(project.status));
+  const currentStep = activeStep === -1 ? 0 : activeStep;
+  document.getElementById('progressBar').innerHTML = steps.map((step, i) => {
+    const isDone = i < currentStep;
+    const isActive = i === currentStep;
+    const cls = isDone ? 'done' : isActive ? 'active' : '';
+    const content = isDone ? '✓' : (i + 1);
+    const connector = i < steps.length - 1
+      ? `<div class="pc-connector ${isDone ? 'done' : ''}"></div>`
+      : '';
+    return `<div class="pc-step ${cls}">${content}<span class="pc-step-label">${step.label}</span></div>${connector}`;
+  }).join('');
+}
+
+// ===== Navigation =====
 function showWelcome() {
   document.getElementById('welcomeScreen').style.display = 'flex';
   document.getElementById('projectView').style.display = 'none';
+  document.getElementById('createView').style.display = 'none';
+  document.getElementById('projectActionsBar').classList.remove('visible');
+  updateTopBar(null);
   currentProjectId = null; currentProject = null;
   document.querySelectorAll('.project-item').forEach(el => el.classList.remove('active'));
 }
 
-// ===== Modal =====
-function showCreateModal() {
+function showCreateView() {
   if (!hasApiKeys()) { showApiKeysModal(true); return; }
-  document.getElementById('createModal').classList.add('visible');
+  document.getElementById('welcomeScreen').style.display = 'none';
+  document.getElementById('projectView').style.display = 'none';
+  document.getElementById('createView').style.display = 'flex';
+  document.getElementById('projectActionsBar').classList.remove('visible');
   document.getElementById('createError').textContent = '';
-  document.getElementById('scenarioInput').focus();
+  updateTopBar(null);
+  document.getElementById('topBarTitle').textContent = 'Новый мультфильм';
+  setTimeout(() => document.getElementById('scenarioInput').focus(), 50);
 }
-function hideCreateModal() { document.getElementById('createModal').classList.remove('visible'); }
+
+function cancelCreate() {
+  if (currentProjectId) {
+    loadProject(currentProjectId);
+  } else {
+    showWelcome();
+  }
+}
 
 // ===== API Keys Modal =====
 let _apiKeysOpenedForCreate = false;
@@ -1301,18 +1419,14 @@ function saveApiKeys() {
   const fk = document.getElementById('falKeyInput').value.trim();
   const ok = document.getElementById('openrouterKeyInput').value.trim();
   const errEl = document.getElementById('apiKeysError');
-
   if (!fk) { errEl.textContent = 'Введите fal.ai ключ'; return; }
   if (!ok) { errEl.textContent = 'Введите OpenRouter ключ'; return; }
-
-  falKey = fk;
-  openrouterKey = ok;
+  falKey = fk; openrouterKey = ok;
   localStorage.setItem('falKey', fk);
   localStorage.setItem('openrouterKey', ok);
-
   hideApiKeysModal();
   updateApiKeysBtnState();
-  if (_apiKeysOpenedForCreate) showCreateModal();
+  if (_apiKeysOpenedForCreate) showCreateView();
 }
 
 // ===== Context menu =====
@@ -1332,10 +1446,7 @@ document.addEventListener('click', (e) => {
   if (!e.target.closest('.context-menu') && !e.target.closest('.project-item-menu')) hideContextMenu();
 });
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { hideContextMenu(); hideCreateModal(); if (hasApiKeys()) hideApiKeysModal(); }
-});
-document.getElementById('createModal').addEventListener('click', (e) => {
-  if (e.target === e.currentTarget) hideCreateModal();
+  if (e.key === 'Escape') hideContextMenu();
 });
 
 function renameProject() {
@@ -1382,7 +1493,7 @@ async function loadProjects() {
     const projects = await api('/api/projects');
     const list = document.getElementById('projectList');
     if (projects.length === 0) {
-      list.innerHTML = '<div class="sidebar-empty">Нет мультфильмов<br><span style="font-size:12px;">Создайте первый мультфильм</span></div>';
+      list.innerHTML = '<div class="sidebar-empty">Нет мультфильмов<br><span style="font-size:12px;">Создайте первый</span></div>';
       return;
     }
     list.innerHTML = '<div class="sidebar-section-label">Мои мультфильмы</div>' + projects.map(p => {
@@ -1415,11 +1526,10 @@ async function createProject() {
   errEl.textContent = '';
   if (!scenario) { errEl.textContent = 'Введите сценарий'; return; }
   btn.disabled = true;
-  btn.innerHTML = '<span class="loading"></span> Создание...';
+  btn.innerHTML = '<span class="loading-dark"></span> Создание...';
   try {
     const project = await api('/api/projects', { method: 'POST', body: JSON.stringify({ scenario, duration, style, mode }) });
     currentProjectId = project.id;
-    hideCreateModal();
     await loadProjects();
     showProject(project);
     document.getElementById('scenarioInput').value = '';
@@ -1427,7 +1537,7 @@ async function createProject() {
     errEl.textContent = e.message;
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Создать';
+    btn.textContent = 'Создать →';
   }
 }
 
@@ -1440,40 +1550,25 @@ async function loadProject(id) {
   } catch (e) { console.error(e); }
 }
 
-// ===== Progress bar =====
-function renderProgressBar(project) {
-  const steps = [
-    { label: 'Сценарий', statuses: ['created', 'scenes_ready'] },
-    { label: 'Кадры',    statuses: ['generating', 'done'] },
-    { label: 'Видео',    statuses: ['generating_videos', 'videos_ready'] },
-    { label: 'Готово',   statuses: ['rendering', 'rendered'] },
-  ];
-  const activeStep = steps.findIndex(s => s.statuses.includes(project.status));
-  const currentStep = activeStep === -1 ? 0 : activeStep;
-  document.getElementById('progressBar').innerHTML = steps.map((step, i) => {
-    const isDone = i < currentStep;
-    const isActive = i === currentStep;
-    const dotClass = isDone ? 'done' : isActive ? 'active' : 'pending';
-    const dotContent = isDone ? '✓' : (i + 1);
-    const connector = i < steps.length - 1 ? '<div class="progress-connector"></div>' : '';
-    return `<div class="progress-step">
-      <div class="progress-dot ${dotClass}">${dotContent}</div>
-      <span class="progress-label ${isActive ? 'active' : ''}">${step.label}</span>
-    </div>${connector}`;
-  }).join('');
-}
-
 function showProject(project) {
   currentProject = project;
   document.getElementById('welcomeScreen').style.display = 'none';
-  document.getElementById('projectView').style.display = 'block';
-  renderProgressBar(project);
-  const modeLabel = project.mode === 'deluxe' ? 'Deluxe' : project.mode === 'pro' ? 'Pro' : project.mode === 'freetrial' ? 'Free Trial' : 'Standard';
-  document.getElementById('projectTitle').textContent = `${modeLabel} · ${project.duration}с`;
+  document.getElementById('createView').style.display = 'none';
+  document.getElementById('projectView').style.display = 'flex';
+  document.getElementById('projectActionsBar').classList.add('visible');
+
+  // Hidden compat fields
+  document.getElementById('projectTitle').textContent = `${project.mode} · ${project.duration}с`;
   document.getElementById('projectStatus').textContent = statusLabel(project.status);
   document.getElementById('projectStatus').className = `status-badge status-${project.status}`;
   document.getElementById('projectScenario').textContent = project.scenario;
-  document.getElementById('generateError').textContent = '';
+
+  updateTopBar(project);
+  renderProgressBar(project);
+
+  const errEl = document.getElementById('generateError');
+  errEl.textContent = '';
+  errEl.classList.remove('visible');
 
   const isDeluxe = project.mode === 'deluxe';
   const scenes = project.scenes || [];
@@ -1482,8 +1577,9 @@ function showProject(project) {
   const allVideosDone = scenes.length > 0 && scenes.every(s => s.video_status === 'done');
 
   const canGenerate = project.status === 'scenes_ready' || project.status === 'done';
-  document.getElementById('generateBtn').disabled = !canGenerate;
-  document.getElementById('generateBtn').textContent = isDeluxe ? 'Создать кадр (сцена 1)' : 'Создать кадры';
+  const generateBtn = document.getElementById('generateBtn');
+  generateBtn.disabled = !canGenerate;
+  generateBtn.textContent = isDeluxe ? 'Создать кадр (сцена 1)' : 'Создать кадры';
 
   const videoBtn = document.getElementById('videoBtn');
   videoBtn.style.display = (!isDeluxe && allApproved) ? '' : 'none';
@@ -1501,90 +1597,147 @@ function showProject(project) {
     renderBtn.innerHTML = '<span class="loading"></span> Сборка...';
   } else { renderBtn.textContent = 'Собрать видео'; }
 
+  // downloadBtn hidden compat
   const downloadBtn = document.getElementById('downloadBtn');
-  downloadBtn.style.display = project.final_video_path ? '' : 'none';
-  downloadBtn.href = `/api/projects/${project.id}/download`;
+  downloadBtn.href = project.final_video_path ? `/api/projects/${project.id}/download` : '#';
 
   if (isDeluxe) renderScenesDeluxe(scenes, project);
-  else renderScenes(scenes);
+  else renderScenes(scenes, project);
 }
 
-function renderScenes(scenes) {
-  const container = document.getElementById('scenesContainer');
-  if (scenes.length === 0) { container.innerHTML = '<div class="empty">Кадры появятся после генерации</div>'; return; }
-  container.innerHTML = scenes.map(s => {
-    const isTransition = s.scene_type === 'transition';
-    if (isTransition) {
-      return `<div class="scene-card transition-card">
-        <div class="transition-arrow">→</div>
-        <div class="transition-label">Переход ${s.scene_number}${s.video_status === 'done' ? '<br>✓' : ''}</div>
-        ${s.video_error ? `<div class="error-msg" style="font-size:10px;margin:4px;">${s.video_error}</div>` : ''}
-      </div>`;
+// ===== Scene rendering helpers =====
+function calcSceneDuration(project) {
+  const mainCount = (project.scenes || []).filter(s => s.scene_type !== 'transition').length;
+  if (!mainCount || !project.duration) return 5;
+  return Math.round(project.duration / mainCount * 10) / 10;
+}
+
+function renderFrameCard(s, project, isLocked) {
+  const hasImage = !!s.image_path;
+  const isApproved = s.status === 'approved';
+  const videoDone = s.video_status === 'done';
+  const videoGenerating = s.video_status === 'generating';
+  const isDeluxe = project && project.mode === 'deluxe';
+  const duration = calcSceneDuration(project);
+
+  const imageHtml = hasImage
+    ? `<img src="${s.image_path}?t=${Date.now()}" alt="Сцена ${s.scene_number}" />`
+    : isLocked
+      ? `<div class="frame-placeholder"><span class="frame-num-label" style="font-size:48px;color:#ccc;">⏳</span></div>`
+      : `<div class="frame-placeholder"><span class="frame-num-label">${s.scene_number}</span></div>`;
+
+  const approvedSticker = isApproved ? `<div class="sticker-approved">✓ OK</div>` : '';
+
+  let statusHtml = '';
+  if (videoGenerating) {
+    statusHtml = `<div class="frame-status generating"><span class="loading-dark"></span> Генерация клипа...</div>`;
+  } else if (videoDone) {
+    statusHtml = `<div class="frame-status done">▶ Клип готов</div>`;
+  }
+
+  const errorHtml = (s.error_message || s.video_error)
+    ? `<div class="frame-error">${s.error_message || s.video_error}</div>` : '';
+
+  const promptEditHtml = `<textarea class="frame-prompt-edit" id="prompt-${s.id}">${s.image_prompt || ''}</textarea>`;
+
+  const vidPromptHtml = isApproved
+    ? `<div class="frame-vidprompt">
+        <div class="frame-vidprompt-label">Видео-промпт</div>
+        <textarea class="frame-prompt-edit frame-prompt-edit-visible" id="vidprompt-${s.id}" style="min-height:44px;">${s.video_prompt || ''}</textarea>
+      </div>` : '';
+
+  let actionsHtml = '';
+  if (hasImage) {
+    actionsHtml += `
+      <button class="icon-btn" onclick="togglePromptEdit('${s.id}')" title="Редактировать промпт">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      </button>
+      <button class="icon-btn btn-regen" onclick="regenerateScene('${s.id}')" title="Перегенерировать">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        REGEN
+      </button>`;
+    if (!isApproved && !videoDone) {
+      actionsHtml += `<button class="frame-approve-btn" onclick="approveScene('${s.id}')">✓ Принять</button>`;
     }
-    return `<div class="scene-card ${s.status === 'approved' ? 'approved' : ''}">
-      ${s.image_path
-        ? `<img src="${s.image_path}?t=${Date.now()}" alt="Сцена ${s.scene_number}">`
-        : `<div class="placeholder">${s.status === 'error' ? '⚠ Ошибка' : 'Нет кадра'}</div>`}
-      <div class="scene-info">
-        <div class="scene-number">
-          Сцена ${s.scene_number}
-          <span class="status-badge status-${s.status}">${statusLabel(s.status)}</span>
-          ${s.video_status && s.video_status !== 'pending' ? `<span class="status-badge status-${s.video_status === 'done' ? 'approved' : s.video_status}">${statusLabel(s.video_status === 'done' ? 'videos_ready' : s.video_status)}</span>` : ''}
-        </div>
-        ${s.error_message ? `<div class="error-msg">${s.error_message}</div>` : ''}
-        ${s.video_error ? `<div class="error-msg">${s.video_error}</div>` : ''}
-        <div class="scene-desc">${s.description || ''}</div>
-        <div class="scene-subtitle">"${s.subtitle_text || ''}"</div>
-        <div class="scene-prompt" onclick="togglePromptEdit('${s.id}')" title="Нажмите для редактирования">${s.image_prompt || ''}</div>
-        <textarea class="prompt-edit" id="prompt-${s.id}">${s.image_prompt || ''}</textarea>
-        ${s.status === 'approved' ? `<div style="margin-bottom:6px;"><div style="font-size:10px;color:var(--muted);margin-bottom:2px;">Видео-промпт:</div><textarea class="prompt-edit visible" id="vidprompt-${s.id}" style="height:38px;">${s.video_prompt || ''}</textarea></div>` : ''}
-        <div class="scene-actions">
-          ${s.image_path ? `<button class="btn btn-approve btn-sm" onclick="approveScene('${s.id}')">✓ Принять</button>` : ''}
-          <button class="btn btn-secondary btn-sm" onclick="regenerateScene('${s.id}')">↻ Обновить</button>
-        </div>
+    if (isDeluxe && isApproved && !videoDone && !videoGenerating) {
+      actionsHtml += `<button class="frame-action-clip" onclick="deluxeStep()">▶ Клип</button>`;
+    }
+  } else if (!isLocked) {
+    actionsHtml = `<span class="frame-action-hint">Нажмите «Создать кадры»</span>`;
+  }
+
+  return `
+    <div class="frame-card ${isApproved ? 'is-approved' : ''} ${isLocked ? 'is-locked' : ''}">
+      <div class="frame-preview">
+        ${imageHtml}
+        <div class="sticker-badge">${duration}s</div>
+        ${approvedSticker}
+      </div>
+      <div class="frame-content">
+        ${errorHtml}
+        <div class="frame-desc">${s.description || ''}</div>
+        <div class="frame-prompt-text" onclick="togglePromptEdit('${s.id}')">${s.image_prompt || 'нет промпта'}</div>
+        ${promptEditHtml}
+        ${vidPromptHtml}
+        ${statusHtml}
+        <div class="frame-actions">${actionsHtml}</div>
       </div>
     </div>`;
-  }).join('');
+}
+
+function renderTransitionNode(s) {
+  const isDone = s.video_status === 'done';
+  const isGenerating = s.video_status === 'generating';
+  const hasError = !!s.video_error;
+  const pillClass = hasError ? 'pill-error' : isDone ? 'pill-done' : isGenerating ? 'pill-generating' : '';
+  const label = hasError ? '!' : isGenerating ? '...' : 'МОРФ';
+  return `
+    <div class="transition-node">
+      <div class="transition-pill ${pillClass}" title="${s.video_error || ''}">${label}</div>
+    </div>`;
+}
+
+function renderScenes(scenes, project) {
+  const container = document.getElementById('scenesContainer');
+  if (!scenes || scenes.length === 0) {
+    container.innerHTML = '<div class="timeline-empty">Кадры появятся после генерации</div>';
+    return;
+  }
+  const isPro = project && project.mode === 'pro';
+  let html = '';
+  scenes.forEach((s, i) => {
+    if (s.scene_type === 'transition') {
+      html += renderTransitionNode(s);
+    } else {
+      html += renderFrameCard(s, project, false);
+      if (!isPro && i < scenes.length - 1 && scenes[i + 1] && scenes[i + 1].scene_type !== 'transition') {
+        html += `<div class="scene-connector"><div class="connector-line"></div></div>`;
+      }
+    }
+  });
+  container.innerHTML = html;
 }
 
 function renderScenesDeluxe(scenes, project) {
   const container = document.getElementById('scenesContainer');
-  if (scenes.length === 0) { container.innerHTML = '<div class="empty">Кадры появятся после генерации</div>'; return; }
-  container.innerHTML = scenes.map((s, idx) => {
-    const hasImage = !!s.image_path;
-    const isApproved = s.status === 'approved';
-    const videoGenerating = s.video_status === 'generating';
-    const videoDone = s.video_status === 'done';
-    const isLocked = !hasImage && idx > 0;
-    return `<div class="scene-card ${isApproved ? 'approved' : ''}" style="${isLocked ? 'opacity:0.4;' : ''}">
-      ${hasImage
-        ? `<img src="${s.image_path}?t=${Date.now()}" alt="Сцена ${s.scene_number}">`
-        : `<div class="placeholder">${isLocked ? '⏳ Ожидание...' : s.status === 'error' ? '⚠ Ошибка' : 'Нет кадра'}</div>`}
-      <div class="scene-info">
-        <div class="scene-number">
-          Сцена ${s.scene_number}
-          <span class="status-badge status-${s.status}">${statusLabel(s.status)}</span>
-          ${s.video_status && s.video_status !== 'pending' ? `<span class="status-badge status-${s.video_status === 'done' ? 'approved' : s.video_status}">${statusLabel(s.video_status === 'done' ? 'videos_ready' : s.video_status)}</span>` : ''}
-        </div>
-        ${s.error_message ? `<div class="error-msg">${s.error_message}</div>` : ''}
-        ${s.video_error ? `<div class="error-msg">${s.video_error}</div>` : ''}
-        <div class="scene-desc">${s.description || ''}</div>
-        <div class="scene-subtitle">"${s.subtitle_text || ''}"</div>
-        ${s.video_prompt ? `<div style="margin-bottom:6px;"><div style="font-size:10px;color:var(--muted);margin-bottom:2px;">Видео-промпт:</div><textarea class="prompt-edit visible" id="vidprompt-${s.id}" style="height:44px;">${s.video_prompt}</textarea></div>` : ''}
-        <div class="scene-actions">
-          ${hasImage && !isApproved && !videoDone ? `<button class="btn btn-approve btn-sm" onclick="approveScene('${s.id}')">✓ Принять</button>` : ''}
-          ${isApproved && !videoDone && !videoGenerating ? `<button class="btn btn-primary btn-sm" onclick="deluxeStep()">▶ Клип</button>` : ''}
-          ${videoGenerating ? `<span style="font-size:11px;color:#eab308;display:flex;align-items:center;gap:5px;"><span class="loading" style="border-color:rgba(234,179,8,0.2);border-top-color:#eab308;"></span> Генерация...</span>` : ''}
-          ${videoDone ? `<span style="font-size:11px;color:var(--success);">✓ Клип готов</span>` : ''}
-        </div>
-      </div>
-    </div>`;
-  }).join('');
+  if (!scenes || scenes.length === 0) {
+    container.innerHTML = '<div class="timeline-empty">Нажмите «Создать кадр» чтобы начать</div>';
+    return;
+  }
+  let html = '';
+  scenes.forEach((s, i) => {
+    const isLocked = !s.image_path && i > 0;
+    html += renderFrameCard(s, project, isLocked);
+    if (i < scenes.length - 1) {
+      html += `<div class="scene-connector"><div class="connector-line"></div></div>`;
+    }
+  });
+  container.innerHTML = html;
 }
 
 async function deluxeStep() {
   const errEl = document.getElementById('generateError');
-  errEl.textContent = '';
+  errEl.textContent = ''; errEl.classList.remove('visible');
   try {
     const vidPromptEls = document.querySelectorAll('[id^="vidprompt-"]');
     for (const el of vidPromptEls) {
@@ -1594,25 +1747,33 @@ async function deluxeStep() {
     }
     await api(`/api/projects/${currentProjectId}/step`, { method: 'POST' });
     startVideoPolling();
-  } catch (e) { errEl.textContent = e.message; }
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.classList.add('visible');
+  }
 }
 
 function togglePromptEdit(sceneId) {
-  document.getElementById(`prompt-${sceneId}`).classList.toggle('visible');
+  const el = document.getElementById(`prompt-${sceneId}`);
+  if (el) el.classList.toggle('is-visible');
 }
 
 async function generateImages() {
   const btn = document.getElementById('generateBtn');
   const errEl = document.getElementById('generateError');
-  errEl.textContent = '';
+  errEl.textContent = ''; errEl.classList.remove('visible');
   btn.disabled = true;
   btn.innerHTML = '<span class="loading"></span> Создание кадров...';
   try {
-    const result = await api(`/api/projects/${currentProjectId}/generate`, { method: 'POST' });
-    showProject({ ...result, id: currentProjectId, scenario: document.getElementById('projectScenario').textContent, duration: parseInt(document.getElementById('projectTitle').textContent.match(/\d+/)?.[0] || 30), status: result.status });
+    await api(`/api/projects/${currentProjectId}/generate`, { method: 'POST' });
     await loadProject(currentProjectId);
-  } catch (e) { errEl.textContent = e.message; }
-  finally { btn.disabled = false; btn.textContent = 'Создать кадры'; }
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.classList.add('visible');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Создать кадры';
+  }
 }
 
 async function regenerateScene(sceneId) {
@@ -1635,7 +1796,7 @@ async function approveScene(sceneId) {
 async function generateVideos() {
   const btn = document.getElementById('videoBtn');
   const errEl = document.getElementById('generateError');
-  errEl.textContent = '';
+  errEl.textContent = ''; errEl.classList.remove('visible');
   btn.disabled = true;
   btn.innerHTML = '<span class="loading"></span> Создание видео...';
   try {
@@ -1649,6 +1810,7 @@ async function generateVideos() {
     startVideoPolling();
   } catch (e) {
     errEl.textContent = e.message;
+    errEl.classList.add('visible');
     btn.disabled = false;
     btn.textContent = 'Оживить сцены';
   }
@@ -1673,14 +1835,19 @@ function stopVideoPolling() {
 async function renderFinalVideo() {
   const btn = document.getElementById('renderBtn');
   const errEl = document.getElementById('generateError');
-  errEl.textContent = '';
+  errEl.textContent = ''; errEl.classList.remove('visible');
   btn.disabled = true;
   btn.innerHTML = '<span class="loading"></span> Сборка...';
   try {
     await api(`/api/projects/${currentProjectId}/render`, { method: 'POST' });
     await loadProject(currentProjectId);
-  } catch (e) { errEl.textContent = e.message; }
-  finally { btn.disabled = false; btn.textContent = 'Собрать видео'; }
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.classList.add('visible');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Собрать видео';
+  }
 }
 
 async function resetVideoGeneration() {

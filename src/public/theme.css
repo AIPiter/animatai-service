@@ -1,0 +1,49 @@
+/* ===================================================================
+   AnimatAI — Design Tokens
+   Edit this file to change the global color palette and typography.
+   =================================================================== */
+
+:root {
+  /* --- Canvas / App backgrounds --- */
+  --bg:           #000000;
+  --surface:      #0A0A0A;
+  --border:       #222222;
+
+  /* --- White card surface (frame cards, auth) --- */
+  --card:         #FFFFFF;
+  --card-border:  #E5E5E5;
+  --card-hover:   #F8F8F8;
+
+  /* --- Accent palette --- */
+  --accent:       #D4FF45;   /* lime  — primary CTA, active states */
+  --accent-dark:  #B8E030;   /* lime hover */
+  --accent-green: #45A055;   /* green — secondary / success */
+  --accent-pink:  #EA2B98;   /* pink  — special badges / transitions */
+
+  /* --- Text --- */
+  --text:         #FFFFFF;   /* on dark background */
+  --text-card:    #000000;   /* on white card */
+  --muted:        #888888;   /* secondary on dark */
+  --muted-card:   #666666;   /* secondary on card */
+
+  /* --- Semantic states --- */
+  --danger:       #FF4444;
+  --success:      #45A055;
+  --warning:      #F5A623;
+
+  /* --- Radius --- */
+  --radius-card:  16px;
+  --radius-pill:  999px;
+  --radius-sm:    8px;
+  --radius-input: 10px;
+
+  /* --- Borders --- */
+  --border-width: 1.5px;
+
+  /* --- Typography --- */
+  --font: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  --fw-regular:  400;
+  --fw-medium:   500;
+  --fw-semibold: 600;
+  --fw-bold:     800;
+}
