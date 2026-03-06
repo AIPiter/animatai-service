@@ -11,15 +11,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLIPS_DIR = path.join(__dirname, '..', '..', 'storage', 'clips');
 const IMAGES_DIR = path.join(__dirname, '..', '..', 'storage', 'images');
 
-const MODEL = process.env.VIDEO_MODEL || 'fal-ai/minimax-video/image-to-video';
+const MINIMAX_MODEL = process.env.VIDEO_MODEL || 'fal-ai/minimax-video/image-to-video';
+const KLING_MODEL = 'fal-ai/kling-video/v2.6/pro/image-to-video';
 
 async function downloadWithRetry(url, maxAttempts = 3) {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       const response = await fetch(url, { signal: AbortSignal.timeout(120_000) });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return Buffer.from(await response.arrayBuffer());
     } catch (err) {
       console.error(`[videoGen] Download attempt ${attempt}/${maxAttempts} failed:`, err.message);
@@ -27,101 +26,6 @@ async function downloadWithRetry(url, maxAttempts = 3) {
       await new Promise(r => setTimeout(r, 5000 * attempt));
     }
   }
-}
-
-export async function generateVideo(imagePath, prompt, filename, falKey) {
-  const fal = createFalClient({ credentials: () => falKey || process.env.FAL_KEY });
-  fs.mkdirSync(CLIPS_DIR, { recursive: true });
-
-  const absoluteImagePath = path.join(__dirname, '..', '..', imagePath.replace(/^\//, ''));
-  const imageFile = new File(
-    [fs.readFileSync(absoluteImagePath)],
-    path.basename(absoluteImagePath),
-    { type: 'image/png' }
-  );
-
-  // Upload image — retry on failure
-  let imageUrl;
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    try {
-      imageUrl = await fal.storage.upload(imageFile);
-      break;
-    } catch (err) {
-      console.error(`[videoGen] Upload attempt ${attempt}/2 failed:`, err.message);
-      if (attempt === 2) throw err;
-      await new Promise(r => setTimeout(r, 3000));
-    }
-  }
-
-  // Submit to queue and get request ID (don't use subscribe — it can timeout on long polls)
-  const { request_id } = await fal.queue.submit(MODEL, {
-    input: {
-      image_url: imageUrl,
-      prompt,
-      duration: '5',
-    },
-  });
-
-  console.log(`[videoGen] Submitted ${filename}, request_id: ${request_id}`);
-
-  // Poll for completion with generous timeout (~20 min max)
-  const startTime = Date.now();
-  const MAX_WAIT = 20 * 60 * 1000; // 20 minutes
-  const POLL_INTERVAL = 10_000; // 10 seconds
-
-  while (Date.now() - startTime < MAX_WAIT) {
-    await new Promise(r => setTimeout(r, POLL_INTERVAL));
-
-    let status;
-    try {
-      status = await fal.queue.status(MODEL, { requestId: request_id, logs: true });
-    } catch (err) {
-      console.error(`[videoGen] Status poll failed (will retry):`, err.message);
-      continue; // retry polling
-    }
-
-    if (status.logs) {
-      for (const log of status.logs) {
-        console.log(`[videoGen] ${filename}: ${log.message}`);
-      }
-    }
-
-    if (status.status === 'COMPLETED') {
-      // Fetch the result
-      let result;
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          result = await fal.queue.result(MODEL, { requestId: request_id });
-          break;
-        } catch (err) {
-          console.error(`[videoGen] Result fetch attempt ${attempt}/3 failed:`, err.message);
-          if (attempt === 3) throw err;
-          await new Promise(r => setTimeout(r, 5000));
-        }
-      }
-
-      const videoUrl = result.data?.video?.url;
-      if (!videoUrl) {
-        throw new Error('No video URL in fal.ai response');
-      }
-
-      const buffer = await downloadWithRetry(videoUrl);
-      const outputPath = path.join(CLIPS_DIR, filename);
-      fs.writeFileSync(outputPath, buffer);
-
-      return `/storage/clips/${filename}`;
-    }
-
-    if (status.status === 'FAILED') {
-      throw new Error(`fal.ai generation failed: ${JSON.stringify(status.error || 'unknown error')}`);
-    }
-
-    // IN_QUEUE or IN_PROGRESS — keep polling
-    const elapsed = Math.round((Date.now() - startTime) / 1000);
-    console.log(`[videoGen] ${filename}: ${status.status} (${elapsed}s elapsed)`);
-  }
-
-  throw new Error(`Video generation timed out after 20 minutes (request_id: ${request_id})`);
 }
 
 async function uploadImageToFal(imagePath, fal) {
@@ -143,9 +47,27 @@ async function uploadImageToFal(imagePath, fal) {
   }
 }
 
-const KLING_MODEL = 'fal-ai/kling-video/v2.6/pro/image-to-video';
+// Submit minimax video generation — returns { request_id, model }
+export async function submitVideoMinimax(imagePath, prompt, duration, falKey) {
+  const fal = createFalClient({ credentials: () => falKey || process.env.FAL_KEY });
+  fs.mkdirSync(CLIPS_DIR, { recursive: true });
 
-export async function generateVideoKling(startImagePath, prompt, filename, endImagePath, { generateAudio = false, voiceIds = [] } = {}, falKey) {
+  const imageUrl = await uploadImageToFal(imagePath, fal);
+
+  const { request_id } = await fal.queue.submit(MINIMAX_MODEL, {
+    input: {
+      image_url: imageUrl,
+      prompt,
+      duration: String(duration || 5),
+    },
+  });
+
+  console.log(`[videoGen-minimax] Submitted, request_id: ${request_id}`);
+  return { request_id, model: MINIMAX_MODEL };
+}
+
+// Submit kling video generation — returns { request_id, model }
+export async function submitVideoKling(startImagePath, prompt, duration, falKey, { endImagePath, generateAudio = false, voiceIds = [] } = {}) {
   const fal = createFalClient({ credentials: () => falKey || process.env.FAL_KEY });
   fs.mkdirSync(CLIPS_DIR, { recursive: true });
 
@@ -154,13 +76,11 @@ export async function generateVideoKling(startImagePath, prompt, filename, endIm
   const input = {
     start_image_url: startImageUrl,
     prompt,
-    duration: '5',
+    duration: String(duration || 5),
     generate_audio: generateAudio,
   };
 
   if (generateAudio && voiceIds.length > 0) {
-    // voice_ids must be created via fal-ai/kling-video/create-voice endpoint first
-    // only pass them if they look like UUIDs (custom created voices), not preset names
     const looksLikeCustomId = voiceIds.every(id => id.length > 20);
     if (looksLikeCustomId) {
       input.voice_ids = voiceIds;
@@ -171,9 +91,17 @@ export async function generateVideoKling(startImagePath, prompt, filename, endIm
     input.end_image_url = await uploadImageToFal(endImagePath, fal);
   }
 
-  console.log(`[videoGen-kling] Input for ${filename}:`, JSON.stringify(input, null, 2));
+  console.log(`[videoGen-kling] Submitting with input:`, JSON.stringify({ ...input, start_image_url: '[url]' }));
   const { request_id } = await fal.queue.submit(KLING_MODEL, { input });
-  console.log(`[videoGen-kling] Submitted ${filename}, request_id: ${request_id}`);
+
+  console.log(`[videoGen-kling] Submitted, request_id: ${request_id}`);
+  return { request_id, model: KLING_MODEL };
+}
+
+// Poll until done, download, save to disk — returns web path
+export async function pollVideo(model, requestId, filename, falKey) {
+  const fal = createFalClient({ credentials: () => falKey || process.env.FAL_KEY });
+  fs.mkdirSync(CLIPS_DIR, { recursive: true });
 
   const startTime = Date.now();
   const MAX_WAIT = 20 * 60 * 1000;
@@ -184,37 +112,33 @@ export async function generateVideoKling(startImagePath, prompt, filename, endIm
 
     let status;
     try {
-      status = await fal.queue.status(KLING_MODEL, { requestId: request_id, logs: true });
+      status = await fal.queue.status(model, { requestId, logs: true });
     } catch (err) {
-      console.error(`[videoGen-kling] Status poll failed (will retry):`, err.message);
+      console.error(`[pollVideo] Status poll failed (will retry):`, err.message);
       continue;
     }
 
     if (status.logs) {
       for (const log of status.logs) {
-        console.log(`[videoGen-kling] ${filename}: ${log.message}`);
+        console.log(`[pollVideo] ${filename}: ${log.message}`);
       }
     }
-
-    console.log(`[videoGen-kling] ${filename}: status=${status.status}${status.error ? ' error=' + JSON.stringify(status.error) : ''}`);
 
     if (status.status === 'COMPLETED') {
       let result;
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
-          result = await fal.queue.result(KLING_MODEL, { requestId: request_id });
+          result = await fal.queue.result(model, { requestId });
           break;
         } catch (err) {
-          const errBody = err.body || err.detail || err.response || '';
-          console.error(`[videoGen-kling] Result fetch attempt ${attempt}/3 failed:`, err.message, JSON.stringify(errBody));
-          if (attempt === 3) throw new Error(`Kling result fetch failed: ${err.message} ${JSON.stringify(errBody)}`);
+          console.error(`[pollVideo] Result fetch attempt ${attempt}/3 failed:`, err.message);
+          if (attempt === 3) throw err;
           await new Promise(r => setTimeout(r, 5000));
         }
       }
 
-      console.log(`[videoGen-kling] Result keys:`, JSON.stringify(Object.keys(result?.data || result || {})));
       const videoUrl = result.data?.video?.url;
-      if (!videoUrl) throw new Error(`No video URL in Kling response: ${JSON.stringify(result?.data || result).slice(0, 500)}`);
+      if (!videoUrl) throw new Error(`No video URL in fal.ai response: ${JSON.stringify(result?.data).slice(0, 200)}`);
 
       const buffer = await downloadWithRetry(videoUrl);
       const outputPath = path.join(CLIPS_DIR, filename);
@@ -224,14 +148,14 @@ export async function generateVideoKling(startImagePath, prompt, filename, endIm
     }
 
     if (status.status === 'FAILED') {
-      throw new Error(`Kling generation failed: ${JSON.stringify(status.error || 'unknown error')}`);
+      throw new Error(`Video generation failed: ${JSON.stringify(status.error || 'unknown error')}`);
     }
 
     const elapsed = Math.round((Date.now() - startTime) / 1000);
-    console.log(`[videoGen-kling] ${filename}: ${status.status} (${elapsed}s elapsed)`);
+    console.log(`[pollVideo] ${filename}: ${status.status} (${elapsed}s elapsed)`);
   }
 
-  throw new Error(`Kling video generation timed out after 20 minutes (request_id: ${request_id})`);
+  throw new Error(`Video generation timed out after 20 minutes (request_id: ${requestId})`);
 }
 
 export async function extractLastFrame(videoPath, outputFilename) {
@@ -250,4 +174,15 @@ export async function extractLastFrame(videoPath, outputFilename) {
   ]);
 
   return `/storage/images/${outputFilename}`;
+}
+
+// Backward-compat wrappers
+export async function generateVideo(imagePath, prompt, filename, falKey) {
+  const { request_id, model } = await submitVideoMinimax(imagePath, prompt, 5, falKey);
+  return pollVideo(model, request_id, filename, falKey);
+}
+
+export async function generateVideoKling(startImagePath, prompt, filename, endImagePath, { generateAudio = false, voiceIds = [] } = {}, falKey) {
+  const { request_id, model } = await submitVideoKling(startImagePath, prompt, 5, falKey, { endImagePath, generateAudio, voiceIds });
+  return pollVideo(model, request_id, filename, falKey);
 }

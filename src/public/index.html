@@ -9,7 +9,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/theme.css">
   <style>
-    /* ===== Reset ===== */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
 
     body {
@@ -20,7 +19,6 @@
       overflow: hidden;
     }
 
-    /* ===== Shared utilities ===== */
     @keyframes spin    { to { transform: rotate(360deg); } }
     @keyframes fadeUp  { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes pulse   { 0%,100% { opacity:1; } 50% { opacity:.4; } }
@@ -39,7 +37,6 @@
       border-radius: 50%; animation: spin .7s linear infinite;
     }
 
-    /* ===== Background orbs ===== */
     .orb {
       position: fixed; border-radius: 50%;
       filter: blur(120px); opacity: .08;
@@ -49,26 +46,18 @@
     .orb-2 { width:550px; height:550px; background:#EA2B98; top:35%; right:-180px; animation: drift2 30s ease-in-out infinite; }
     .orb-3 { width:420px; height:420px; background:#45A055; bottom:-120px; left:28%; animation: drift3 20s ease-in-out infinite; }
 
-    /* ======================================================
-       LANDING
-    ====================================================== */
+    /* ===== LANDING ===== */
     #view-landing {
-      min-height: 100vh;
-      position: relative;
-      overflow-x: hidden;
-      overflow-y: auto;
+      min-height: 100vh; position: relative;
+      overflow-x: hidden; overflow-y: auto;
     }
-
     .l-nav {
       position: relative; z-index: 10;
       display: flex; align-items: center; justify-content: space-between;
       padding: 24px 48px;
     }
     @media (max-width:600px) { .l-nav { padding: 20px 24px; } }
-
-    .l-logo {
-      font-size: 18px; font-weight: var(--fw-bold); letter-spacing: -.03em;
-    }
+    .l-logo { font-size: 18px; font-weight: var(--fw-bold); letter-spacing: -.03em; }
     .l-nav-links { display: flex; gap: 10px; }
 
     .btn-ghost {
@@ -97,25 +86,18 @@
     }
     .l-badge {
       display: inline-flex; align-items: center; gap: 7px;
-      background: rgba(212,255,69,.08);
-      border: 1px solid rgba(212,255,69,.2);
+      background: rgba(212,255,69,.08); border: 1px solid rgba(212,255,69,.2);
       border-radius: 20px; padding: 5px 14px;
       font-size: 13px; color: var(--accent); margin-bottom: 28px;
       animation: fadeUp .5s ease both;
     }
-    .l-badge-dot {
-      width: 6px; height: 6px;
-      background: var(--accent); border-radius: 50%;
-      animation: pulse 2s ease infinite;
-    }
+    .l-badge-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: pulse 2s ease infinite; }
     .l-hero h1 {
       font-size: clamp(36px, 6vw, 74px); font-weight: var(--fw-bold);
       line-height: 1.06; letter-spacing: -.04em; margin-bottom: 20px;
       animation: fadeUp .5s ease .08s both;
     }
-    .l-hero h1 em {
-      font-style: normal; color: var(--accent);
-    }
+    .l-hero h1 em { font-style: normal; color: var(--accent); }
     .l-sub {
       font-size: clamp(15px, 2.2vw, 19px); color: var(--muted);
       max-width: 540px; margin: 0 auto 40px; line-height: 1.65;
@@ -134,7 +116,6 @@
       transition: background .15s, transform .12s;
     }
     .btn-cta:hover { background: var(--accent-dark); transform: translateY(-1px); }
-
     .btn-cta-ghost {
       background: transparent; color: var(--text);
       border: var(--border-width) solid var(--border);
@@ -153,9 +134,7 @@
       text-align: center; font-size: 11px; font-weight: var(--fw-bold);
       color: #444; text-transform: uppercase; letter-spacing: .12em; margin-bottom: 32px;
     }
-    .l-grid-3 {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 12px;
-    }
+    .l-grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 12px; }
     .l-card {
       background: var(--card); color: var(--text-card);
       border: var(--border-width) solid var(--text-card);
@@ -163,16 +142,11 @@
       transition: transform .2s;
     }
     .l-card:hover { transform: translateY(-3px); }
-    .l-card-num {
-      font-size: 11px; font-weight: var(--fw-bold); color: var(--accent-green);
-      letter-spacing: .08em; margin-bottom: 12px; text-transform: uppercase;
-    }
+    .l-card-num { font-size: 11px; font-weight: var(--fw-bold); color: var(--accent-green); letter-spacing: .08em; margin-bottom: 12px; text-transform: uppercase; }
     .l-card h3 { font-size: 17px; font-weight: var(--fw-bold); margin-bottom: 8px; color: var(--text-card); }
     .l-card p { font-size: 14px; color: var(--muted-card); line-height: 1.6; }
 
-    .l-grid-4 {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(190px,1fr)); gap: 10px;
-    }
+    .l-grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 12px; }
     .l-mode {
       background: var(--card); color: var(--text-card);
       border: var(--border-width) solid var(--text-card);
@@ -183,276 +157,92 @@
     .l-mode-name { font-size: 15px; font-weight: var(--fw-bold); margin-bottom: 4px; }
     .l-mode-meta { font-size: 12px; color: var(--accent-green); margin-bottom: 8px; font-weight: var(--fw-semibold); }
     .l-mode-desc { font-size: 13px; color: var(--muted-card); line-height: 1.5; }
+    .l-footer { position: relative; z-index: 10; text-align: center; padding: 0 24px 48px; font-size: 13px; color: #333; }
 
-    .l-footer {
-      position: relative; z-index: 10;
-      text-align: center; padding: 0 24px 48px;
-      font-size: 13px; color: #333;
-    }
-
-    /* ======================================================
-       AUTH (Login / Register)
-    ====================================================== */
-    .auth-view {
-      min-height: 100vh; display: flex; align-items: center;
-      justify-content: center; padding: 24px; position: relative;
-    }
-    .auth-back {
-      position: fixed; top: 24px; left: 28px; z-index: 20;
-      background: none; border: none; color: var(--muted);
-      cursor: pointer; font-size: 14px; display: flex; align-items: center;
-      gap: 6px; font-family: inherit; padding: 6px 0; transition: color .15s;
-    }
+    /* ===== AUTH ===== */
+    .auth-view { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; position: relative; }
+    .auth-back { position: fixed; top: 24px; left: 28px; z-index: 20; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 6px; font-family: inherit; padding: 6px 0; transition: color .15s; }
     .auth-back:hover { color: var(--text); }
-
-    .auth-card {
-      width: 100%; max-width: 400px;
-      background: var(--card);
-      border: var(--border-width) solid var(--text-card);
-      border-radius: var(--radius-card); padding: 38px 36px;
-      position: relative; z-index: 10; animation: fadeUp .4s ease both;
-    }
+    .auth-card { width: 100%; max-width: 400px; background: var(--card); border: var(--border-width) solid var(--text-card); border-radius: var(--radius-card); padding: 38px 36px; position: relative; z-index: 10; animation: fadeUp .4s ease both; }
     .auth-logo { font-size: 17px; font-weight: var(--fw-bold); margin-bottom: 20px; color: var(--text-card); }
     .auth-title { font-size: 24px; font-weight: var(--fw-bold); letter-spacing: -.03em; margin-bottom: 5px; color: var(--text-card); }
     .auth-subtitle { font-size: 14px; color: var(--muted-card); margin-bottom: 28px; }
-
     .auth-field { margin-bottom: 16px; }
     .auth-field label { font-size: 13px; color: var(--muted-card); display: block; margin-bottom: 6px; font-weight: var(--fw-medium); }
-    .auth-field input {
-      width: 100%;
-      background: #F5F5F5; border: var(--border-width) solid #DDD;
-      border-radius: var(--radius-input); color: var(--text-card);
-      padding: 11px 14px; font-size: 14px; outline: none; font-family: inherit;
-      transition: border-color .15s;
-    }
+    .auth-field input { width: 100%; background: #F5F5F5; border: var(--border-width) solid #DDD; border-radius: var(--radius-input); color: var(--text-card); padding: 11px 14px; font-size: 14px; outline: none; font-family: inherit; transition: border-color .15s; }
     .auth-field input:focus { border-color: var(--text-card); }
     .auth-error { color: var(--danger); font-size: 13px; margin-bottom: 10px; min-height: 18px; line-height: 1.4; }
-
-    .auth-submit {
-      width: 100%; background: var(--accent); color: var(--text-card);
-      border: var(--border-width) solid var(--text-card);
-      border-radius: var(--radius-pill); padding: 13px;
-      font-size: 14px; font-weight: var(--fw-bold); cursor: pointer; margin-top: 4px;
-      font-family: inherit; text-transform: uppercase; letter-spacing: .03em;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      transition: background .15s;
-    }
+    .auth-submit { width: 100%; background: var(--accent); color: var(--text-card); border: var(--border-width) solid var(--text-card); border-radius: var(--radius-pill); padding: 13px; font-size: 14px; font-weight: var(--fw-bold); cursor: pointer; margin-top: 4px; font-family: inherit; text-transform: uppercase; letter-spacing: .03em; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background .15s; }
     .auth-submit:hover { background: var(--accent-dark); }
     .auth-submit:disabled { opacity: .55; cursor: not-allowed; }
-
     .auth-switch { text-align: center; margin-top: 20px; font-size: 13px; color: var(--muted-card); }
     .auth-link { color: var(--accent-green); cursor: pointer; font-weight: var(--fw-semibold); }
     .auth-link:hover { text-decoration: underline; }
 
-    /* ======================================================
-       APP SHELL
-    ====================================================== */
-    #view-app {
-      display: flex; height: 100vh; overflow: hidden;
-    }
+    /* ===== APP SHELL ===== */
+    #view-app { display: flex; height: 100vh; overflow: hidden; }
 
-    /* --- Sidebar --- */
-    .sidebar {
-      width: 260px; flex-shrink: 0;
-      border-right: 1px solid var(--border);
-      display: flex; flex-direction: column;
-      transition: width .3s ease, border-color .3s ease;
-      overflow: hidden;
-    }
+    .sidebar { width: 260px; flex-shrink: 0; border-right: 1px solid var(--border); display: flex; flex-direction: column; transition: width .3s ease, border-color .3s ease; overflow: hidden; }
     .sidebar.collapsed { width: 0; border-right-color: transparent; }
-
-    .sidebar-brand {
-      padding: 16px 16px 12px;
-      display: flex; align-items: center; gap: 8px;
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0; width: 260px;
-    }
-    .sidebar-toggle {
-      width: 30px; height: 30px; background: transparent; border: none;
-      color: var(--muted); cursor: pointer; border-radius: 6px;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; transition: color .15s, background .15s;
-    }
+    .sidebar-brand { padding: 16px 16px 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); flex-shrink: 0; width: 260px; }
+    .sidebar-toggle { width: 30px; height: 30px; background: transparent; border: none; color: var(--muted); cursor: pointer; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: color .15s, background .15s; }
     .sidebar-toggle:hover { color: var(--text); background: rgba(255,255,255,.05); }
     .brand-name { font-size: 16px; font-weight: var(--fw-bold); letter-spacing: -.03em; }
-
-    .sidebar-new-btn {
-      margin: 12px 16px 8px;
-      width: calc(100% - 32px); flex-shrink: 0;
-      background: var(--accent); color: var(--text-card);
-      border: var(--border-width) solid var(--text-card);
-      border-radius: var(--radius-pill); padding: 9px 14px;
-      font-size: 13px; font-weight: var(--fw-bold); cursor: pointer;
-      font-family: inherit; text-transform: uppercase; letter-spacing: .03em;
-      white-space: nowrap; transition: background .15s;
-    }
+    .sidebar-new-btn { margin: 12px 16px 8px; width: calc(100% - 32px); flex-shrink: 0; background: var(--accent); color: var(--text-card); border: var(--border-width) solid var(--text-card); border-radius: var(--radius-pill); padding: 9px 14px; font-size: 13px; font-weight: var(--fw-bold); cursor: pointer; font-family: inherit; text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; transition: background .15s; }
     .sidebar-new-btn:hover { background: var(--accent-dark); }
-
-    .sidebar-section-header {
-      font-size: 11px; font-weight: var(--fw-bold); color: #444;
-      text-transform: uppercase; letter-spacing: .08em;
-      padding: 14px 20px 6px; flex-shrink: 0; width: 260px;
-    }
-
-    .sidebar-projects {
-      flex: 1; overflow-y: auto; padding: 4px 8px; width: 260px;
-    }
+    .sidebar-section-header { font-size: 11px; font-weight: var(--fw-bold); color: #444; text-transform: uppercase; letter-spacing: .08em; padding: 14px 20px 6px; flex-shrink: 0; width: 260px; }
+    .sidebar-projects { flex: 1; overflow-y: auto; padding: 4px 8px; width: 260px; }
     .sidebar-empty { color: #444; font-size: 13px; padding: 20px 12px; line-height: 1.6; }
-    .sidebar-section-label {
-      font-size: 10px; color: #444; font-weight: var(--fw-medium);
-      text-transform: uppercase; letter-spacing: .08em;
-      padding: 8px 10px 4px;
-    }
-
-    .project-item {
-      display: flex; align-items: center; gap: 6px;
-      padding: 10px 12px; border-radius: 12px;
-      cursor: pointer; font-size: 13px; color: #666;
-      transition: all .2s;
-    }
+    .sidebar-section-label { font-size: 10px; color: #444; font-weight: var(--fw-medium); text-transform: uppercase; letter-spacing: .08em; padding: 8px 10px 4px; }
+    .project-item { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border-radius: 12px; cursor: pointer; font-size: 13px; color: #666; transition: all .2s; }
     .project-item:not(.active):hover { background: #111; color: var(--text); }
-    .project-item.active {
-      background: var(--accent); color: var(--text-card);
-      font-weight: var(--fw-bold); border: var(--border-width) solid var(--text-card);
-    }
+    .project-item.active { background: var(--accent); color: var(--text-card); font-weight: var(--fw-bold); border: var(--border-width) solid var(--text-card); }
     .project-item-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .project-item-menu {
-      width: 22px; height: 22px; background: transparent; border: none;
-      color: currentColor; cursor: pointer; border-radius: 4px; font-size: 14px;
-      display: flex; align-items: center; justify-content: center;
-      opacity: 0; transition: opacity .15s;
-    }
+    .project-item-menu { width: 22px; height: 22px; background: transparent; border: none; color: currentColor; cursor: pointer; border-radius: 4px; font-size: 14px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .15s; }
     .project-item:hover .project-item-menu { opacity: 1; }
     .project-item.active .project-item-menu { opacity: .6; }
     .project-item.active .project-item-menu:hover { opacity: 1; }
-    .project-item-input {
-      background: transparent; border: none; outline: none;
-      color: inherit; font: inherit; width: 100%; font-size: 13px;
-    }
+    .project-item-input { background: transparent; border: none; outline: none; color: inherit; font: inherit; width: 100%; font-size: 13px; }
 
-    .sidebar-footer {
-      padding: 10px 8px; border-top: 1px solid var(--border);
-      display: flex; flex-direction: column; gap: 4px;
-      flex-shrink: 0; width: 260px;
-    }
-    .sidebar-footer-btn {
-      width: 100%; background: none;
-      border: 1px solid var(--border); border-radius: 10px;
-      color: var(--muted); padding: 9px 12px;
-      font-size: 12px; font-weight: var(--fw-medium);
-      cursor: pointer; font-family: inherit;
-      display: flex; align-items: center; gap: 8px;
-      transition: color .15s, border-color .15s, background .15s;
-    }
+    .sidebar-footer { padding: 10px 8px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; width: 260px; }
+    .sidebar-footer-btn { width: 100%; background: none; border: 1px solid var(--border); border-radius: 10px; color: var(--muted); padding: 9px 12px; font-size: 12px; font-weight: var(--fw-medium); cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 8px; transition: color .15s, border-color .15s, background .15s; }
     .sidebar-footer-btn:hover { color: var(--text); border-color: #444; background: rgba(255,255,255,.03); }
     .sidebar-footer-btn svg { flex-shrink: 0; }
 
-    /* Sidebar expand (floating, when collapsed) */
-    .sidebar-open-toggle {
-      position: fixed; top: 14px; left: 14px; z-index: 100;
-      width: 36px; height: 36px;
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 8px; color: var(--muted); cursor: pointer;
-      display: none; align-items: center; justify-content: center; font-size: 16px;
-      transition: color .15s;
-    }
+    .sidebar-open-toggle { position: fixed; top: 14px; left: 14px; z-index: 100; width: 36px; height: 36px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); cursor: pointer; display: none; align-items: center; justify-content: center; font-size: 16px; transition: color .15s; }
     .sidebar.collapsed ~ .sidebar-open-toggle { display: flex; }
 
-    /* --- Context menu --- */
-    .context-menu {
-      position: fixed; background: var(--surface);
-      border: 1px solid var(--border); border-radius: 10px;
-      padding: 4px; z-index: 1000; min-width: 160px;
-      display: none; box-shadow: 0 8px 24px rgba(0,0,0,.6);
-    }
+    .context-menu { position: fixed; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 4px; z-index: 1000; min-width: 160px; display: none; box-shadow: 0 8px 24px rgba(0,0,0,.6); }
     .context-menu.visible { display: block; }
-    .context-menu-item {
-      padding: 9px 12px; font-size: 13px; cursor: pointer;
-      border-radius: 7px; display: flex; align-items: center; gap: 8px;
-      color: var(--text); transition: background .1s;
-    }
+    .context-menu-item { padding: 9px 12px; font-size: 13px; cursor: pointer; border-radius: 7px; display: flex; align-items: center; gap: 8px; color: var(--text); transition: background .1s; }
     .context-menu-item:hover { background: rgba(255,255,255,.06); }
     .context-menu-item.danger { color: var(--danger); }
     .context-menu-item.danger:hover { background: rgba(239,68,68,.08); }
 
-    /* --- Main area --- */
-    .main-area {
-      flex: 1; min-width: 0;
-      display: flex; flex-direction: column; overflow: hidden;
-    }
-
-    /* --- Top bar --- */
-    .top-bar {
-      height: 64px; flex-shrink: 0;
-      border-bottom: 1px solid var(--border);
-      display: flex; align-items: center;
-      padding: 0 28px; gap: 20px;
-    }
-    .top-bar-left {
-      display: flex; align-items: center; gap: 10px; min-width: 0;
-    }
-    .top-bar-title {
-      font-size: 15px; font-weight: var(--fw-bold); letter-spacing: -.02em;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .top-bar-badge {
-      background: #1a1a1a; border: 1px solid var(--border);
-      padding: 3px 8px; border-radius: 4px;
-      font-size: 11px; color: #666;
-      text-transform: uppercase; letter-spacing: .05em;
-      white-space: nowrap; flex-shrink: 0;
-    }
+    .main-area { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+    .top-bar { height: 64px; flex-shrink: 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 28px; gap: 20px; }
+    .top-bar-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .top-bar-title { font-size: 15px; font-weight: var(--fw-bold); letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .top-bar-badge { background: #1a1a1a; border: 1px solid var(--border); padding: 3px 8px; border-radius: 4px; font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; flex-shrink: 0; }
     .top-bar-center { flex: 1; display: flex; align-items: center; justify-content: center; }
     .top-bar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 
-    /* Compact progress in top bar */
-    #progressBar {
-      display: none;
-      align-items: center;
-      gap: 0;
-    }
+    #progressBar { display: none; align-items: center; gap: 0; }
     #progressBar.visible { display: flex; }
-    .pc-step {
-      width: 26px; height: 26px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: var(--fw-bold);
-      background: #1a1a1a; border: 1.5px solid #333; color: #555;
-      flex-shrink: 0; position: relative; cursor: default;
-    }
+    .pc-step { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: var(--fw-bold); background: #1a1a1a; border: 1.5px solid #333; color: #555; flex-shrink: 0; position: relative; cursor: default; }
     .pc-step.active { background: var(--accent); border-color: var(--accent); color: var(--text-card); }
     .pc-step.done { background: rgba(69,160,85,.15); border-color: var(--accent-green); color: var(--accent-green); }
-    .pc-step-label {
-      position: absolute; bottom: -17px;
-      font-size: 9px; white-space: nowrap; color: #555;
-    }
+    .pc-step-label { position: absolute; bottom: -17px; font-size: 9px; white-space: nowrap; color: #555; }
     .pc-step.active .pc-step-label { color: var(--accent); }
     .pc-connector { width: 28px; height: 1.5px; background: #333; flex-shrink: 0; }
     .pc-connector.done { background: var(--accent-green); }
 
-    /* Export button */
-    .btn-export {
-      background: var(--accent); color: var(--text-card);
-      border: var(--border-width) solid var(--text-card);
-      border-radius: var(--radius-pill); padding: 8px 18px;
-      font-size: 12px; font-weight: var(--fw-bold); cursor: pointer;
-      font-family: inherit; text-transform: uppercase; letter-spacing: .04em;
-      text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
-      transition: background .15s, transform .1s;
-    }
-    .btn-export:hover:not(:disabled) { background: var(--accent-dark); transform: translateY(-1px); }
-    .btn-export:disabled {
-      opacity: .3; cursor: not-allowed; pointer-events: none;
-    }
+    .btn-export { background: var(--accent); color: var(--text-card); border: var(--border-width) solid var(--text-card); border-radius: var(--radius-pill); padding: 8px 18px; font-size: 12px; font-weight: var(--fw-bold); cursor: pointer; font-family: inherit; text-transform: uppercase; letter-spacing: .04em; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: background .15s, transform .1s; }
+    .btn-export:hover:not([style*="pointer-events:none"]) { background: var(--accent-dark); transform: translateY(-1px); }
 
-    /* --- Project actions bar --- */
-    .project-actions-bar {
-      flex-shrink: 0; display: none;
-      padding: 10px 28px; border-bottom: 1px solid var(--border);
-      gap: 8px; align-items: center; flex-wrap: wrap;
-    }
+    .project-actions-bar { flex-shrink: 0; display: none; padding: 10px 28px; border-bottom: 1px solid var(--border); gap: 8px; align-items: center; flex-wrap: wrap; }
     .project-actions-bar.visible { display: flex; }
 
-    /* Buttons inside actions bar */
     .btn { padding: 8px 16px; border-radius: var(--radius-pill); font-size: 12px; font-weight: var(--fw-bold); cursor: pointer; border: none; font-family: inherit; text-transform: uppercase; letter-spacing: .04em; transition: background .15s, opacity .15s; }
     .btn:disabled { opacity: .4; cursor: not-allowed; }
     .btn-primary { background: var(--accent); color: var(--text-card); border: var(--border-width) solid var(--text-card); }
@@ -465,70 +255,28 @@
 
     .error { color: var(--danger); font-size: 13px; }
 
-    /* --- Main canvas (dot-grid) --- */
-    .main-canvas {
-      flex: 1; position: relative; overflow: hidden;
-      background-image: radial-gradient(#222 1px, transparent 1px);
-      background-size: 20px 20px;
-    }
+    .main-canvas { flex: 1; position: relative; overflow: hidden; background-image: radial-gradient(#222 1px, transparent 1px); background-size: 20px 20px; }
 
-    /* ======================================================
-       WELCOME SCREEN
-    ====================================================== */
-    #welcomeScreen {
-      position: absolute; inset: 0;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      padding: 40px; gap: 16px;
-      overflow-y: auto;
-    }
+    /* ===== WELCOME ===== */
+    #welcomeScreen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; gap: 16px; overflow-y: auto; }
     .welcome-logo { font-size: 48px; font-weight: var(--fw-bold); letter-spacing: -.04em; }
     .welcome-logo span { color: var(--accent); }
     .welcome-sub { font-size: 16px; color: var(--muted); max-width: 400px; text-align: center; line-height: 1.65; }
-    .welcome-btn {
-      margin-top: 8px;
-      background: var(--accent); color: var(--text-card);
-      border: var(--border-width) solid var(--text-card);
-      border-radius: var(--radius-pill); padding: 13px 32px;
-      font-size: 14px; font-weight: var(--fw-bold); cursor: pointer;
-      font-family: inherit; text-transform: uppercase; letter-spacing: .04em;
-      transition: background .15s, transform .1s;
-    }
+    .welcome-btn { margin-top: 8px; background: var(--accent); color: var(--text-card); border: var(--border-width) solid var(--text-card); border-radius: var(--radius-pill); padding: 13px 32px; font-size: 14px; font-weight: var(--fw-bold); cursor: pointer; font-family: inherit; text-transform: uppercase; letter-spacing: .04em; transition: background .15s, transform .1s; }
     .welcome-btn:hover { background: var(--accent-dark); transform: translateY(-1px); }
-    .welcome-steps {
-      display: flex; gap: 24px; margin-top: 8px;
-      flex-wrap: wrap; justify-content: center;
-    }
+    .welcome-steps { display: flex; gap: 24px; margin-top: 8px; flex-wrap: wrap; justify-content: center; }
     .welcome-step { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
-    .welcome-step-num {
-      width: 22px; height: 22px; border-radius: 50%;
-      background: #111; border: 1.5px solid #333;
-      font-size: 11px; font-weight: var(--fw-bold);
-      display: flex; align-items: center; justify-content: center; color: var(--accent);
-    }
+    .welcome-step-num { width: 22px; height: 22px; border-radius: 50%; background: #111; border: 1.5px solid #333; font-size: 11px; font-weight: var(--fw-bold); display: flex; align-items: center; justify-content: center; color: var(--accent); }
 
-    /* ======================================================
-       CREATE VIEW (inline form)
-    ====================================================== */
-    #createView {
-      position: absolute; inset: 0;
-      display: none; flex-direction: column;
-      align-items: center; justify-content: flex-start;
-      padding: 40px 24px; overflow-y: auto;
-    }
-    .create-form-wrap {
-      width: 100%; max-width: 560px;
-      display: flex; flex-direction: column; gap: 0;
-    }
-    .create-form-title {
-      font-size: 22px; font-weight: var(--fw-bold); letter-spacing: -.03em;
-      margin-bottom: 6px;
-    }
+    /* ===== CREATE VIEW ===== */
+    #createView { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: flex-start; padding: 40px 24px; overflow-y: auto; }
+    .create-form-wrap { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 0; }
+    .create-form-title { font-size: 22px; font-weight: var(--fw-bold); letter-spacing: -.03em; margin-bottom: 6px; }
     .create-form-sub { font-size: 14px; color: var(--muted); margin-bottom: 28px; }
 
     .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
     .form-group label { font-size: 12px; color: var(--muted); font-weight: var(--fw-medium); text-transform: uppercase; letter-spacing: .06em; }
-    .form-group textarea, .form-group select, .form-group input {
+    .form-group textarea, .form-group select, .form-group input[type=text], .form-group input[type=email], .form-group input[type=password] {
       background: #0d0d0d; border: 1px solid var(--border);
       border-radius: var(--radius-sm); color: var(--text);
       padding: 11px 14px; font-size: 14px; outline: none;
@@ -538,80 +286,65 @@
     .form-group textarea:focus, .form-group select:focus, .form-group input:focus { border-color: var(--accent); }
     .form-group select { cursor: pointer; }
     .field-hint { font-size: 12px; color: #444; }
-    .mode-note {
-      font-size: 12px; color: var(--muted);
-      background: rgba(255,255,255,.03); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); padding: 8px 12px;
-      margin-bottom: 14px; line-height: 1.5;
+
+    /* Mode radio buttons */
+    .mode-radios { display: flex; gap: 10px; }
+    .mode-radio-btn {
+      flex: 1; padding: 12px 16px; background: #0d0d0d;
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      cursor: pointer; transition: border-color .15s, background .15s;
     }
-    .create-form-actions {
-      display: flex; align-items: center; gap: 12px; margin-top: 8px;
+    .mode-radio-btn input[type=radio] { display: none; }
+    .mode-radio-btn:has(input:checked) { border-color: var(--accent); background: rgba(212,255,69,.06); }
+    .mode-radio-name { font-size: 13px; font-weight: var(--fw-bold); color: var(--text); margin-bottom: 3px; }
+    .mode-radio-desc { font-size: 11px; color: var(--muted); line-height: 1.4; }
+
+    /* Scene count slider */
+    .scene-count-wrap { display: flex; flex-direction: column; gap: 8px; }
+    .scene-count-label { font-size: 14px; color: var(--accent); font-weight: var(--fw-bold); }
+    input[type=range] {
+      -webkit-appearance: none; width: 100%; height: 4px;
+      background: var(--border); border-radius: 2px; outline: none; cursor: pointer;
     }
-    .create-submit {
-      background: var(--accent); color: var(--text-card);
-      border: var(--border-width) solid var(--text-card);
-      border-radius: var(--radius-pill); padding: 12px 28px;
-      font-size: 13px; font-weight: var(--fw-bold); cursor: pointer;
-      font-family: inherit; text-transform: uppercase; letter-spacing: .04em;
-      display: flex; align-items: center; gap: 8px;
-      transition: background .15s;
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 18px; height: 18px;
+      border-radius: 50%; background: var(--accent);
+      border: 2px solid var(--text-card); cursor: pointer;
     }
+
+    .mode-note { font-size: 12px; color: var(--muted); background: rgba(255,255,255,.03); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 14px; line-height: 1.5; }
+    .create-form-actions { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+    .create-submit { background: var(--accent); color: var(--text-card); border: var(--border-width) solid var(--text-card); border-radius: var(--radius-pill); padding: 12px 28px; font-size: 13px; font-weight: var(--fw-bold); cursor: pointer; font-family: inherit; text-transform: uppercase; letter-spacing: .04em; display: flex; align-items: center; gap: 8px; transition: background .15s; }
     .create-submit:hover { background: var(--accent-dark); }
     .create-submit:disabled { opacity: .5; cursor: not-allowed; }
-    .create-cancel-link {
-      font-size: 13px; color: var(--muted); cursor: pointer;
-      background: none; border: none; font-family: inherit; padding: 0;
-      transition: color .15s;
-    }
+    .create-cancel-link { font-size: 13px; color: var(--muted); cursor: pointer; background: none; border: none; font-family: inherit; padding: 0; transition: color .15s; }
     .create-cancel-link:hover { color: var(--text); }
 
-    /* ======================================================
-       PROJECT VIEW + TIMELINE
-    ====================================================== */
-    #projectView {
-      position: absolute; inset: 0;
-      display: none; flex-direction: column; overflow: hidden;
-    }
-    .error-banner {
-      flex-shrink: 0; padding: 8px 28px;
-      background: rgba(255,68,68,.08); border-bottom: 1px solid rgba(255,68,68,.2);
-      font-size: 13px; color: var(--danger);
-      display: none;
-    }
+    /* ===== PROJECT VIEW ===== */
+    #projectView { position: absolute; inset: 0; display: none; flex-direction: column; overflow: hidden; }
+    .error-banner { flex-shrink: 0; padding: 8px 28px; background: rgba(255,68,68,.08); border-bottom: 1px solid rgba(255,68,68,.2); font-size: 13px; color: var(--danger); display: none; }
     .error-banner.visible { display: block; }
 
-    .timeline-scroll {
-      flex: 1; overflow-x: auto; overflow-y: hidden;
-      display: flex; align-items: center; padding: 48px 48px 64px;
-    }
+    .timeline-scroll { flex: 1; overflow-x: auto; overflow-y: hidden; display: flex; align-items: center; padding: 48px 48px 64px; }
     .timeline-scroll::-webkit-scrollbar { height: 6px; }
     .timeline-scroll::-webkit-scrollbar-track { background: transparent; }
     .timeline-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
     .timeline-scroll::-webkit-scrollbar-thumb:hover { background: #555; }
 
-    .timeline-track {
-      display: flex; align-items: center;
-      gap: 0; padding-right: 120px; min-height: 280px;
-    }
-    .timeline-empty {
-      color: #333; font-size: 14px; font-weight: var(--fw-medium);
-      padding: 20px; white-space: nowrap;
-    }
+    .timeline-track { display: flex; align-items: center; gap: 0; padding-right: 120px; min-height: 280px; }
+    .timeline-empty { color: #333; font-size: 14px; font-weight: var(--fw-medium); padding: 20px; white-space: nowrap; }
 
-    /* --- Frame Card --- */
+    /* Frame Card */
     .frame-card {
       width: 300px; background: var(--card);
-      border-radius: var(--radius-card);
-      border: var(--border-width) solid var(--card-border);
-      padding: 12px;
-      display: flex; flex-direction: column; gap: 10px;
+      border-radius: var(--radius-card); border: var(--border-width) solid var(--card-border);
+      padding: 12px; display: flex; flex-direction: column; gap: 10px;
       flex-shrink: 0; position: relative;
       box-shadow: 0 12px 32px rgba(0,0,0,.5);
       transition: transform .2s, box-shadow .2s;
     }
     .frame-card:hover { transform: translateY(-4px); box-shadow: 0 18px 40px rgba(0,0,0,.6); }
-    .frame-card.is-approved { border-color: var(--accent-green); }
-    .frame-card.is-locked { opacity: .4; pointer-events: none; }
+    .frame-card.video-active { border-color: var(--accent-green); }
 
     .frame-preview {
       width: 100%; aspect-ratio: 16/9;
@@ -620,172 +353,101 @@
       display: flex; align-items: center; justify-content: center;
       border: 1px solid #E5E5E5;
     }
-    .frame-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .frame-preview img, .frame-preview video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .frame-preview video { display: none; }
+    .frame-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background-image: repeating-linear-gradient(45deg, #eee 0, #eee 10px, #f5f5f5 10px, #f5f5f5 20px); }
+    .frame-num-label { font-size: 88px; font-weight: var(--fw-bold); color: #D8D8D8; line-height: 1; user-select: none; font-family: var(--font); }
 
-    .frame-placeholder {
-      width: 100%; height: 100%;
-      display: flex; align-items: center; justify-content: center;
-      background-image: repeating-linear-gradient(45deg, #eee 0, #eee 10px, #f5f5f5 10px, #f5f5f5 20px);
+    /* Spinner overlay on preview */
+    .frame-spinner {
+      position: absolute; inset: 0;
+      background: rgba(255,255,255,.75);
+      display: none; align-items: center; justify-content: center;
+      border-radius: 8px; z-index: 3;
     }
-    .frame-num-label {
-      font-size: 88px; font-weight: var(--fw-bold);
-      color: #D8D8D8; line-height: 1; user-select: none;
-      font-family: var(--font);
-    }
+    .frame-spinner.visible { display: flex; }
+    .frame-spinner-inner { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .frame-spinner-label { font-size: 11px; color: #555; font-weight: var(--fw-semibold); }
 
-    /* Sticker badges on preview */
-    .sticker-badge {
-      position: absolute; bottom: 8px; right: 8px;
-      background: var(--accent-pink); color: var(--text-card);
-      border: 1px solid var(--text-card); border-radius: var(--radius-pill);
-      padding: 4px 10px; font-size: 11px; font-weight: var(--fw-bold);
-      box-shadow: 2px 2px 0 rgba(0,0,0,.1); z-index: 2;
-    }
-    .sticker-approved {
-      position: absolute; top: 8px; right: 8px;
-      background: var(--accent-green); color: #fff;
-      border: 1px solid rgba(255,255,255,.3);
-      border-radius: var(--radius-pill); padding: 3px 8px;
-      font-size: 10px; font-weight: var(--fw-bold); z-index: 2;
-    }
+    .sticker-badge { position: absolute; bottom: 8px; right: 8px; background: var(--accent-pink); color: var(--text-card); border: 1px solid var(--text-card); border-radius: var(--radius-pill); padding: 4px 10px; font-size: 11px; font-weight: var(--fw-bold); box-shadow: 2px 2px 0 rgba(0,0,0,.1); z-index: 2; }
+    .sticker-done { position: absolute; top: 8px; right: 8px; background: var(--accent-green); color: #fff; border: 1px solid rgba(255,255,255,.3); border-radius: var(--radius-pill); padding: 3px 8px; font-size: 10px; font-weight: var(--fw-bold); z-index: 2; }
 
-    /* Frame card content */
     .frame-content { padding: 2px 4px; display: flex; flex-direction: column; gap: 6px; }
-    .frame-desc {
-      color: var(--text-card); font-size: 13px; line-height: 1.4;
-      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
-    }
-    .frame-prompt-text {
-      font-size: 11px; color: #999; cursor: pointer; line-height: 1.35;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-      transition: color .15s;
-    }
+    .frame-desc { color: var(--text-card); font-size: 13px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .frame-prompt-text { font-size: 11px; color: #999; cursor: pointer; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; transition: color .15s; }
     .frame-prompt-text:hover { color: #666; }
-    .frame-prompt-edit {
-      display: none; width: 100%;
-      background: #F5F5F5; border: 1.5px solid #DDD;
-      border-radius: var(--radius-sm); color: var(--text-card);
-      padding: 8px 10px; font-size: 12px; font-family: inherit;
-      resize: vertical; min-height: 60px; margin-top: 2px;
-      transition: border-color .15s;
-    }
+    .frame-prompt-edit { display: none; width: 100%; background: #F5F5F5; border: 1.5px solid #DDD; border-radius: var(--radius-sm); color: var(--text-card); padding: 8px 10px; font-size: 12px; font-family: inherit; resize: vertical; min-height: 60px; margin-top: 2px; transition: border-color .15s; }
     .frame-prompt-edit:focus { border-color: #999; outline: none; }
     .frame-prompt-edit.is-visible { display: block; }
-    .frame-prompt-edit-visible { display: block !important; }
 
     .frame-vidprompt { display: flex; flex-direction: column; gap: 4px; }
     .frame-vidprompt-label { font-size: 10px; color: var(--muted-card); text-transform: uppercase; letter-spacing: .06em; }
+    .frame-prompt-always { display: block; }
 
     .frame-error { font-size: 11px; color: var(--danger); line-height: 1.3; }
+    .frame-video-status { font-size: 11px; font-weight: var(--fw-semibold); display: flex; align-items: center; gap: 5px; }
+    .frame-video-status.generating { color: var(--warning); }
+    .frame-video-status.queued { color: #888; }
+    .frame-video-status.done { color: var(--accent-green); }
+    .frame-video-status.error { color: var(--danger); }
 
-    /* Frame actions row */
-    .frame-actions {
-      display: flex; align-items: center; gap: 6px;
-      border-top: 1px solid #EEE; padding-top: 10px; margin-top: 2px;
-    }
-    .icon-btn {
-      background: transparent; border: none; cursor: pointer;
-      padding: 5px; border-radius: 6px;
-      color: #AAA; transition: background .15s, color .15s;
-      display: flex; align-items: center; justify-content: center;
-    }
+    .frame-actions { display: flex; align-items: center; gap: 5px; border-top: 1px solid #EEE; padding-top: 10px; margin-top: 2px; flex-wrap: wrap; }
+    .icon-btn { background: transparent; border: none; cursor: pointer; padding: 5px; border-radius: 6px; color: #AAA; transition: background .15s, color .15s; display: flex; align-items: center; justify-content: center; }
     .icon-btn svg { width: 15px; height: 15px; }
     .icon-btn:hover { background: #F0F0F0; color: #000; }
-    .btn-regen {
-      margin-left: auto; color: var(--text-card); font-weight: var(--fw-bold);
-      font-size: 11px; display: flex; align-items: center; gap: 4px;
-      letter-spacing: .04em; text-transform: uppercase;
-    }
-    .btn-regen svg { width: 13px; height: 13px; }
-    .frame-approve-btn {
-      margin-left: auto;
-      background: var(--accent); color: var(--text-card);
-      border: var(--border-width) solid var(--text-card);
-      border-radius: var(--radius-pill); padding: 5px 12px;
-      font-size: 11px; font-weight: var(--fw-bold); cursor: pointer;
-      font-family: inherit; text-transform: uppercase; letter-spacing: .04em;
-      transition: background .15s;
-    }
-    .frame-approve-btn:hover { background: var(--accent-dark); }
-    .frame-action-clip {
-      background: var(--accent-green); color: #fff;
-      border: none; border-radius: var(--radius-pill); padding: 5px 12px;
-      font-size: 11px; font-weight: var(--fw-bold); cursor: pointer;
-      font-family: inherit; text-transform: uppercase; transition: opacity .15s;
-    }
-    .frame-action-clip:hover { opacity: .85; }
-    .frame-action-hint { font-size: 11px; color: #CCC; }
 
-    /* Frame status */
-    .frame-status {
-      display: flex; align-items: center; gap: 6px;
-      font-size: 11px; font-weight: var(--fw-semibold); text-transform: uppercase;
-    }
-    .frame-status.generating { color: var(--warning); }
-    .frame-status.done { color: var(--accent-green); }
+    .btn-card { font-size: 11px; font-weight: var(--fw-bold); padding: 5px 10px; border-radius: var(--radius-pill); cursor: pointer; font-family: inherit; text-transform: uppercase; letter-spacing: .04em; transition: opacity .15s; border: none; }
+    .btn-card-primary { background: var(--accent); color: var(--text-card); border: 1px solid var(--text-card); }
+    .btn-card-primary:hover { opacity: .85; }
+    .btn-card-green { background: var(--accent-green); color: #fff; }
+    .btn-card-green:hover { opacity: .85; }
+    .btn-card-green:disabled { opacity: .4; cursor: not-allowed; }
 
-    /* --- Transition node (pro mode) --- */
-    .transition-node {
-      display: flex; align-items: center; justify-content: center;
-      width: 72px; flex-shrink: 0; position: relative;
-    }
-    .transition-line { flex: 1; height: 2px; background: #2a2a2a; }
-    .transition-pill {
-      background: var(--accent-green); color: var(--text-card);
-      border: 1px solid var(--text-card); border-radius: 10px;
-      padding: 4px 10px; font-size: 10px; font-weight: var(--fw-bold);
-      cursor: pointer; white-space: nowrap;
-      transform: rotate(-5deg);
-      transition: transform .2s;
-      position: absolute;
-    }
-    .transition-pill:hover { transform: scale(1.1) rotate(0deg); }
-    .transition-pill.pill-done { background: var(--accent-green); }
-    .transition-pill.pill-generating { background: var(--warning); }
-    .transition-pill.pill-error { background: var(--danger); color: #fff; }
-
-    /* --- Simple connector between scenes (non-pro) --- */
-    .scene-connector {
-      display: flex; align-items: center;
-      width: 32px; flex-shrink: 0;
-    }
+    /* Connector between scenes */
+    .scene-connector { display: flex; align-items: center; width: 32px; flex-shrink: 0; }
     .connector-line { flex: 1; height: 2px; background: #2a2a2a; }
 
-    /* ======================================================
-       MODALS
-    ====================================================== */
-    .modal-overlay {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,.7); z-index: 500;
-      display: none; align-items: center; justify-content: center; padding: 24px;
-    }
+    /* ===== MODALS ===== */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 500; display: none; align-items: center; justify-content: center; padding: 24px; }
     .modal-overlay.visible { display: flex; }
-    .modal {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius-card); padding: 28px;
-      width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
-      position: relative;
-    }
-    .modal-header {
-      display: flex; align-items: flex-start; justify-content: space-between;
-      margin-bottom: 20px; gap: 12px;
-    }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 28px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; position: relative; }
+    .modal-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 12px; }
     .modal-title { font-size: 17px; font-weight: var(--fw-bold); }
-    .modal-close {
-      background: none; border: none; color: var(--muted); cursor: pointer;
-      padding: 2px; border-radius: 4px; flex-shrink: 0;
-      transition: color .15s;
-    }
+    .modal-close { background: none; border: none; color: var(--muted); cursor: pointer; padding: 2px; border-radius: 4px; flex-shrink: 0; transition: color .15s; }
     .modal-close:hover { color: var(--text); }
     .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
-    .btn-cancel {
-      background: transparent; color: var(--muted);
-      border: 1px solid var(--border); border-radius: var(--radius-pill);
-      padding: 8px 16px; font-size: 12px; font-weight: var(--fw-bold);
-      cursor: pointer; font-family: inherit; text-transform: uppercase;
-      transition: color .15s;
-    }
+    .btn-cancel { background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 8px 16px; font-size: 12px; font-weight: var(--fw-bold); cursor: pointer; font-family: inherit; text-transform: uppercase; transition: color .15s; }
     .btn-cancel:hover { color: var(--text); }
+
+    /* ===== GEAR POPUP ===== */
+    .gear-popup {
+      position: fixed; z-index: 800;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 16px;
+      width: 280px; box-shadow: 0 16px 48px rgba(0,0,0,.7);
+      display: none;
+    }
+    .gear-popup.visible { display: block; }
+    .gear-popup-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .gear-popup-title { font-size: 13px; font-weight: var(--fw-bold); }
+    .gear-popup-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 2px 6px; border-radius: 4px; transition: color .15s; }
+    .gear-popup-close:hover { color: var(--text); }
+    .gear-section { margin-bottom: 16px; }
+    .gear-section:last-child { margin-bottom: 0; }
+    .gear-label { font-size: 10px; font-weight: var(--fw-bold); color: #555; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+    .gear-dur-btns { display: flex; gap: 6px; }
+    .gear-dur-btn { flex: 1; padding: 7px 0; background: #111; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 13px; font-weight: var(--fw-bold); cursor: pointer; font-family: inherit; transition: all .15s; text-align: center; }
+    .gear-dur-btn.active { background: var(--accent); border-color: var(--accent); color: var(--text-card); }
+    .gear-dur-btn:hover:not(.active) { border-color: #555; color: var(--text); }
+    .gear-dur-btn:disabled { opacity: .3; cursor: not-allowed; }
+    .gear-history-list { display: flex; flex-direction: column; gap: 8px; }
+    .gear-history-empty { font-size: 12px; color: #444; }
+    .gear-history-item { display: flex; align-items: center; gap: 8px; }
+    .gear-history-thumb { width: 60px; height: 34px; border-radius: 5px; object-fit: cover; background: #222; border: 1px solid var(--border); flex-shrink: 0; }
+    .gear-history-thumb-video { width: 60px; height: 34px; border-radius: 5px; object-fit: cover; background: #111; border: 1px solid var(--border); flex-shrink: 0; }
+    .gear-restore-btn { font-size: 11px; color: var(--accent); background: none; border: 1px solid rgba(212,255,69,.3); border-radius: 6px; padding: 3px 8px; cursor: pointer; font-family: inherit; font-weight: var(--fw-bold); transition: background .15s; white-space: nowrap; }
+    .gear-restore-btn:hover { background: rgba(212,255,69,.1); }
+    .gear-history-time { font-size: 10px; color: #555; flex: 1; }
 
     /* Status badges */
     .status-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: var(--fw-semibold); text-transform: uppercase; letter-spacing: .04em; }
@@ -795,21 +457,16 @@
     .status-generating_videos { background: rgba(245,166,35,.1); color: var(--warning); border: 1px solid rgba(245,166,35,.2); }
     .status-rendering     { background: rgba(245,166,35,.1); color: var(--warning); border: 1px solid rgba(245,166,35,.2); }
     .status-done          { background: rgba(212,255,69,.08); color: var(--accent); border: 1px solid rgba(212,255,69,.2); }
-    .status-approved      { background: rgba(69,160,85,.12); color: var(--accent-green); border: 1px solid rgba(69,160,85,.25); }
     .status-videos_ready  { background: rgba(212,255,69,.08); color: var(--accent); border: 1px solid rgba(212,255,69,.2); }
     .status-rendered      { background: rgba(69,160,85,.12); color: var(--accent-green); border: 1px solid rgba(69,160,85,.25); }
     .status-error         { background: rgba(255,68,68,.1); color: #ff8888; border: 1px solid rgba(255,68,68,.2); }
 
-    /* Hidden but in DOM (needed by JS) */
     #projectScenario { display: none; }
-    #projectTitle    { display: none; }
-    #projectStatus   { display: none; }
-    #downloadBtn     { display: none; }
   </style>
 </head>
 <body>
 
-<!-- ==================== LANDING ==================== -->
+<!-- ===== LANDING ===== -->
 <div id="view-landing">
   <div class="orb orb-1"></div>
   <div class="orb orb-2"></div>
@@ -826,9 +483,9 @@
   <section class="l-hero">
     <div class="l-badge"><span class="l-badge-dot"></span>AI Animation Studio</div>
     <h1>Сценарий<br>в <em>мультфильм</em></h1>
-    <p class="l-sub">Пишете историю — ИИ разбивает на сцены, рисует кадры, оживляет их и монтирует готовое видео с субтитрами.</p>
+    <p class="l-sub">Пишете историю — ИИ разбивает на сцены, рисует кадры, оживляет и монтирует готовое видео.</p>
     <div class="l-hero-btns">
-      <button class="btn-cta" onclick="showView('register')">Начать бесплатно →</button>
+      <button class="btn-cta" onclick="showView('register')">Начать →</button>
       <button class="btn-cta-ghost" onclick="showView('login')">Войти в аккаунт</button>
     </div>
   </section>
@@ -839,43 +496,33 @@
       <div class="l-card">
         <div class="l-card-num">01</div>
         <h3>Напишите сценарий</h3>
-        <p>Опишите историю в свободной форме — хоть абзац, хоть страница. ИИ сам разобьёт на сцены, напишет промпты и субтитры.</p>
+        <p>ИИ разобьёт историю на сцены, напишет промпты и субтитры для каждого кадра.</p>
       </div>
       <div class="l-card">
         <div class="l-card-num">02</div>
-        <h3>Одобрите кадры</h3>
-        <p>ИИ генерирует изображение для каждой сцены. Просматривайте, редактируйте промпты и принимайте понравившиеся.</p>
+        <h3>Генерируйте кадры</h3>
+        <p>Нажмите кнопку на карточке — ИИ нарисует кадр. Пересоздавайте сколько угодно раз.</p>
       </div>
       <div class="l-card">
         <div class="l-card-num">03</div>
         <h3>Скачайте видео</h3>
-        <p>ИИ анимирует кадры, склеивает клипы и добавляет субтитры. Скачивайте MP4 — готово к публикации.</p>
+        <p>ИИ анимирует кадры в очереди, склеивает клипы с субтитрами в готовый MP4.</p>
       </div>
     </div>
   </div>
 
   <div class="l-section" style="padding-bottom:100px;">
     <div class="l-section-label">Режимы</div>
-    <div class="l-grid-4">
+    <div class="l-grid-2">
       <div class="l-mode">
-        <div class="l-mode-name">Free Trial</div>
-        <div class="l-mode-meta">2 сцены · ~10 сек</div>
-        <div class="l-mode-desc">Попробуйте бесплатно. Быстрый результат без ограничений по теме.</div>
+        <div class="l-mode-name">Покадровый</div>
+        <div class="l-mode-meta">1–12 сцен · по 5 сек каждая</div>
+        <div class="l-mode-desc">Полноценный мультфильм: выбирайте количество сцен, генерируйте кадры по одному или все сразу.</div>
       </div>
       <div class="l-mode">
-        <div class="l-mode-name">Standard</div>
-        <div class="l-mode-meta">до 20 сцен · 30–120 сек</div>
-        <div class="l-mode-desc">Полноценный мультфильм произвольной длины.</div>
-      </div>
-      <div class="l-mode">
-        <div class="l-mode-name">Pro</div>
-        <div class="l-mode-meta">3 сцены + переходы · ~25 сек</div>
-        <div class="l-mode-desc">Бесшовные морф-переходы между сценами.</div>
-      </div>
-      <div class="l-mode">
-        <div class="l-mode-name">Deluxe</div>
-        <div class="l-mode-meta">3 сцены · ~15 сек</div>
-        <div class="l-mode-desc">Цепочка кадров, ИИ-озвучка персонажей и субтитры.</div>
+        <div class="l-mode-name">Делюкс с озвучкой</div>
+        <div class="l-mode-meta">3 сцены · цепочка · ~15 сек</div>
+        <div class="l-mode-desc">Кадры склеиваются в цепочку, персонажи озвучиваются ИИ, субтитры синхронизированы.</div>
       </div>
     </div>
   </div>
@@ -883,7 +530,7 @@
   <div class="l-footer">© 2026 AnimatAI</div>
 </div>
 
-<!-- ==================== LOGIN ==================== -->
+<!-- ===== LOGIN ===== -->
 <div id="view-login" style="display:none;">
   <div class="orb orb-1"></div>
   <div class="orb orb-2"></div>
@@ -908,7 +555,7 @@
   </div>
 </div>
 
-<!-- ==================== REGISTER ==================== -->
+<!-- ===== REGISTER ===== -->
 <div id="view-register" style="display:none;">
   <div class="orb orb-1"></div>
   <div class="orb orb-2"></div>
@@ -937,10 +584,9 @@
   </div>
 </div>
 
-<!-- ==================== APP ==================== -->
+<!-- ===== APP ===== -->
 <div id="view-app" style="display:none;">
 
-  <!-- Context menu -->
   <div class="context-menu" id="contextMenu">
     <div class="context-menu-item" onclick="renameProject()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
@@ -960,14 +606,11 @@
       </button>
       <span class="brand-name">AnimatAI</span>
     </div>
-
     <button class="sidebar-new-btn" onclick="showCreateView()">+ Новый мультфильм</button>
-
     <div class="sidebar-section-header">История</div>
     <div class="sidebar-projects" id="projectList">
       <div class="sidebar-empty">Нет мультфильмов<br><span style="font-size:12px;">Создайте первый</span></div>
     </div>
-
     <div class="sidebar-footer">
       <button class="sidebar-footer-btn" onclick="showApiKeysModal()" id="apiKeysBtn">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="3"/><path d="M14 7l-7.5 7.5"/><path d="m17 4-3 3"/><path d="m21 4-1.5 1.5"/></svg>
@@ -980,15 +623,12 @@
     </div>
   </div>
 
-  <!-- Expand toggle (shown when sidebar collapsed) -->
   <button class="sidebar-open-toggle" id="sidebarOpenToggle" onclick="toggleSidebar()" title="Открыть меню">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
   </button>
 
   <!-- Main area -->
   <div class="main-area">
-
-    <!-- Top bar -->
     <header class="top-bar">
       <div class="top-bar-left">
         <div class="top-bar-title" id="topBarTitle">AnimatAI</div>
@@ -998,28 +638,22 @@
         <div id="progressBar"></div>
       </div>
       <div class="top-bar-right">
-        <a class="btn-export" id="exportBtn" href="#" style="opacity:.25;pointer-events:none;" title="Сначала сгенерируйте видео полностью">
+        <a class="btn-export" id="exportBtn" href="#" style="opacity:.25;pointer-events:none;" title="Сначала выполните рендер">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Экспорт
         </a>
       </div>
     </header>
 
-    <!-- Project action buttons (shown when project open) -->
+    <!-- Action bar -->
     <div class="project-actions-bar" id="projectActionsBar">
-      <button class="btn btn-primary btn-sm" id="generateBtn" onclick="generateImages()">Создать кадры</button>
-      <button class="btn btn-primary btn-sm" id="videoBtn" style="display:none;" onclick="generateVideos()">Оживить сцены</button>
-      <button class="btn-danger btn-sm" id="resetVideoBtn" style="display:none;" onclick="resetVideoGeneration()">Сбросить генерацию</button>
-      <button class="btn btn-primary btn-sm" id="renderBtn" style="display:none;" onclick="renderFinalVideo()">Собрать видео</button>
-      <!-- hidden elements kept for JS compat -->
-      <a id="downloadBtn" href="#" style="display:none;"></a>
-      <span id="projectTitle" style="display:none;"></span>
-      <span id="projectStatus" style="display:none;"></span>
+      <button class="btn btn-primary btn-sm" id="generateBtn" onclick="generateImages()">Создать все кадры</button>
+      <button class="btn btn-primary btn-sm" id="videoBtn" style="display:none;" onclick="generateVideos()">Анимировать все</button>
+      <button class="btn btn-secondary btn-sm" id="renderBtn" style="display:none;" onclick="confirmRender()">Рендер</button>
+      <span id="projectScenario" style="display:none;"></span>
     </div>
 
-    <!-- Canvas -->
     <div class="main-canvas">
-
       <!-- Welcome -->
       <div id="welcomeScreen">
         <div class="welcome-logo">Animat<span>AI</span></div>
@@ -1027,12 +661,12 @@
         <button class="welcome-btn" onclick="showCreateView()">Создать мультфильм</button>
         <div class="welcome-steps">
           <div class="welcome-step"><div class="welcome-step-num">1</div><span>Напишите сценарий</span></div>
-          <div class="welcome-step"><div class="welcome-step-num">2</div><span>Одобрите кадры</span></div>
+          <div class="welcome-step"><div class="welcome-step-num">2</div><span>Генерируйте кадры</span></div>
           <div class="welcome-step"><div class="welcome-step-num">3</div><span>Скачайте видео</span></div>
         </div>
       </div>
 
-      <!-- Create project (inline) -->
+      <!-- Create form -->
       <div id="createView">
         <div class="create-form-wrap">
           <div class="create-form-title">Новый мультфильм</div>
@@ -1043,19 +677,33 @@
             <textarea id="scenarioInput" placeholder="Напишите историю — что происходит, кто герои, какая обстановка"></textarea>
             <div class="field-hint">Чем подробнее, тем лучше результат</div>
           </div>
+
           <div class="form-group">
             <label>Режим</label>
-            <select id="modeInput" onchange="toggleModeOptions()">
-              <option value="freetrial">Free Trial — 2 сцены, быстрый результат</option>
-              <option value="standard">Standard — до 20 сцен</option>
-              <option value="pro">Pro — бесшовные переходы</option>
-              <option value="deluxe">Deluxe — озвучка и субтитры</option>
-            </select>
+            <div class="mode-radios">
+              <label class="mode-radio-btn">
+                <input type="radio" name="modeInput" value="standard" checked onchange="toggleModeOptions()">
+                <div class="mode-radio-name">Покадровый</div>
+                <div class="mode-radio-desc">MiniMax видео · субтитры</div>
+              </label>
+              <label class="mode-radio-btn">
+                <input type="radio" name="modeInput" value="deluxe" onchange="toggleModeOptions()">
+                <div class="mode-radio-name">Делюкс</div>
+                <div class="mode-radio-desc">Kling + озвучка · цепочка кадров</div>
+              </label>
+            </div>
           </div>
-          <div id="freetrialNote" class="mode-note">2 сцены по 5 секунд · субтитры · быстро</div>
-          <div id="proDurationNote" class="mode-note" style="display:none;">3 сцены + 2 перехода · бесшовное видео ~25с</div>
-          <div id="deluxeNote" class="mode-note" style="display:none;">3 клипа цепочкой · видео с озвучкой и субтитрами ~15с</div>
-          <div id="voiceGroup" class="mode-note" style="display:none;">Голоса назначаются автоматически на основе диалогов в сценарии</div>
+
+          <div id="sceneCountGroup" class="form-group">
+            <label>Количество сцен</label>
+            <div class="scene-count-wrap">
+              <div class="scene-count-label" id="sceneCountLabel">5 сцен · ~25 сек</div>
+              <input type="range" id="sceneCountInput" min="1" max="12" value="5" oninput="updateSceneCountLabel()">
+            </div>
+          </div>
+
+          <div id="deluxeNote" class="mode-note" style="display:none;">3 сцены · цепочка кадров · видео с озвучкой персонажей · ~15 сек</div>
+
           <div class="form-group">
             <label>Стиль</label>
             <select id="styleInput">
@@ -1064,14 +712,7 @@
               <option value="pixar">Pixar 3D</option>
             </select>
           </div>
-          <div class="form-group" id="durationGroup" style="display:none;">
-            <label>Длительность</label>
-            <select id="durationInput">
-              <option value="30">30 секунд (~5 сцен)</option>
-              <option value="60">1 минута (~10 сцен)</option>
-              <option value="120">2 минуты (~20 сцен)</option>
-            </select>
-          </div>
+
           <div class="error" id="createError" style="margin-bottom:12px;"></div>
           <div class="create-form-actions">
             <button class="create-submit" id="createBtn" onclick="createProject()">Создать →</button>
@@ -1082,56 +723,46 @@
 
       <!-- Project timeline -->
       <div id="projectView">
-        <p id="projectScenario"></p>
         <div id="generateError" class="error-banner"></div>
         <div class="timeline-scroll">
           <div class="timeline-track" id="scenesContainer"></div>
         </div>
       </div>
-
-    </div><!-- /main-canvas -->
-  </div><!-- /main-area -->
+    </div>
+  </div>
 
   <!-- Modal: API Keys -->
   <div class="modal-overlay" id="apiKeysModal">
     <div class="modal" style="max-width:480px;">
       <div class="modal-header">
         <div class="modal-title">API-ключи для генерации</div>
-        <button class="modal-close" onclick="hideApiKeysModal()" title="Закрыть">
+        <button class="modal-close" onclick="hideApiKeysModal()">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
-
       <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:20px;">
         AnimatAI использует ваши личные API-ключи. Ключи хранятся только в вашем браузере.
       </p>
-
       <div style="background:#111;border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px;">
         <div style="font-size:13px;font-weight:700;margin-bottom:8px;">fal.ai — изображения и видео</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6;">
           1. Зайдите на <strong style="color:#aaa;">fal.ai</strong> → зарегистрируйтесь<br>
-          2. Перейдите в <strong style="color:#aaa;">Dashboard → API Keys</strong><br>
-          3. Нажмите <strong style="color:#aaa;">Add key</strong> и скопируйте ключ
+          2. Перейдите в <strong style="color:#aaa;">Dashboard → API Keys</strong> → <strong style="color:#aaa;">Add key</strong>
         </div>
         <div class="form-group" style="margin-bottom:0;">
-          <input id="falKeyInput" type="password" placeholder="xxxxxxxx-xxxx-xxxx-xxxx:xxxxxxxxxxxxxxxx"
-            style="font-family:monospace;font-size:12px;" />
+          <input id="falKeyInput" type="password" placeholder="xxxxxxxx-xxxx-xxxx-xxxx:xxxxxxxxxxxxxxxx" style="font-family:monospace;font-size:12px;" />
         </div>
       </div>
-
       <div style="background:#111;border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:6px;">
         <div style="font-size:13px;font-weight:700;margin-bottom:8px;">OpenRouter — сценарий и изображения</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6;">
-          1. Зайдите на <strong style="color:#aaa;">openrouter.ai</strong> → зарегистрируйтесь<br>
-          2. Перейдите в <strong style="color:#aaa;">Keys → Create Key</strong><br>
-          3. Скопируйте ключ (начинается с <strong style="color:#aaa;">sk-or-</strong>)
+          1. Зайдите на <strong style="color:#aaa;">openrouter.ai</strong> → <strong style="color:#aaa;">Keys → Create Key</strong><br>
+          2. Скопируйте ключ (начинается с <strong style="color:#aaa;">sk-or-</strong>)
         </div>
         <div class="form-group" style="margin-bottom:0;">
-          <input id="openrouterKeyInput" type="password" placeholder="sk-or-v1-..."
-            style="font-family:monospace;font-size:12px;" />
+          <input id="openrouterKeyInput" type="password" placeholder="sk-or-v1-..." style="font-family:monospace;font-size:12px;" />
         </div>
       </div>
-
       <div id="apiKeysError" class="error" style="margin-top:10px;"></div>
       <div class="modal-actions">
         <button class="btn-cancel" onclick="hideApiKeysModal()" id="apiKeysCancelBtn">Отмена</button>
@@ -1140,37 +771,80 @@
     </div>
   </div>
 
+  <!-- Gear popup -->
+  <div class="gear-popup" id="gearPopup">
+    <div class="gear-popup-header">
+      <span class="gear-popup-title">Настройки сцены</span>
+      <button class="gear-popup-close" onclick="closeGearPopup()">✕</button>
+    </div>
+    <div class="gear-section" id="gearDurSection">
+      <div class="gear-label">Длительность клипа</div>
+      <div class="gear-dur-btns">
+        <button class="gear-dur-btn" data-dur="3" onclick="setClipDuration(3)">3с</button>
+        <button class="gear-dur-btn" data-dur="5" onclick="setClipDuration(5)">5с</button>
+        <button class="gear-dur-btn" data-dur="7" onclick="setClipDuration(7)">7с</button>
+      </div>
+    </div>
+    <div class="gear-section" id="gearImageHistorySection">
+      <div class="gear-label">История изображений</div>
+      <div id="gearImageHistoryList" class="gear-history-list">
+        <div class="gear-history-empty">Нет сохранённых версий</div>
+      </div>
+    </div>
+    <div class="gear-section" id="gearVideoHistorySection">
+      <div class="gear-label">История клипов</div>
+      <div id="gearVideoHistoryList" class="gear-history-list">
+        <div class="gear-history-empty">Нет сохранённых версий</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm render modal -->
+  <div class="modal-overlay" id="renderConfirmModal">
+    <div class="modal" style="max-width:380px;">
+      <div class="modal-header">
+        <div class="modal-title">Собрать финальное видео?</div>
+        <button class="modal-close" onclick="document.getElementById('renderConfirmModal').classList.remove('visible')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <p style="font-size:13px;color:var(--muted);line-height:1.6;">После рендера вся история изображений и клипов будет удалена. Это освободит место, но версии нельзя будет восстановить.</p>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="document.getElementById('renderConfirmModal').classList.remove('visible')">Отмена</button>
+        <button class="btn btn-primary btn-sm" onclick="renderFinalVideo()">Рендер →</button>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /view-app -->
 
 <script>
 const STATUS_LABELS = {
-  pending: 'Ожидание', scenes_ready: 'Кадры созданы', generating: 'Создание кадров',
+  pending: 'Ожидание', scenes_ready: 'Готово к работе', generating: 'Создание кадров',
   generating_videos: 'Создание видео...', rendering: 'Сборка', done: 'Готово',
-  approved: 'Принято', videos_ready: 'Видео готово!', rendered: 'Финал готов', error: 'Ошибка',
+  videos_ready: 'Видео готово!', rendered: 'Финал готов', error: 'Ошибка',
 };
 function statusLabel(s) { return STATUS_LABELS[s] || s; }
 
 let currentProjectId = null;
 let currentProject = null;
 let contextMenuProjectId = null;
+let gearPopupSceneId = null;
 
-// ===== Auth state =====
 let accessToken = localStorage.getItem('accessToken');
 let refreshTokenStr = localStorage.getItem('refreshToken');
-
-// ===== API Keys =====
 let falKey = localStorage.getItem('falKey') || '';
 let openrouterKey = localStorage.getItem('openrouterKey') || '';
 function hasApiKeys() { return !!(falKey && openrouterKey); }
 
-// ===== View management =====
+// ===== View =====
 function showView(name) {
   ['landing', 'login', 'register', 'app'].forEach(v => {
     const el = document.getElementById(`view-${v}`);
     el.style.display = v === name ? (v === 'app' ? 'flex' : 'block') : 'none';
   });
-  if (name === 'register') { document.getElementById('regError').textContent = ''; }
-  if (name === 'login') { document.getElementById('loginError').textContent = ''; }
+  if (name === 'register') document.getElementById('regError').textContent = '';
+  if (name === 'login') document.getElementById('loginError').textContent = '';
 }
 
 // ===== Auth =====
@@ -1191,14 +865,9 @@ async function login() {
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Ошибка входа');
     setTokens(data.accessToken, data.refreshToken);
-    showView('app');
-    loadProjects();
-  } catch (e) {
-    errEl.textContent = e.message;
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Войти';
-  }
+    showView('app'); loadProjects();
+  } catch (e) { errEl.textContent = e.message; }
+  finally { btn.disabled = false; btn.textContent = 'Войти'; }
 }
 
 async function register() {
@@ -1221,14 +890,9 @@ async function register() {
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Ошибка регистрации');
     setTokens(data.accessToken, data.refreshToken);
-    showView('app');
-    loadProjects();
-  } catch (e) {
-    errEl.textContent = e.message;
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Создать аккаунт →';
-  }
+    showView('app'); loadProjects();
+  } catch (e) { errEl.textContent = e.message; }
+  finally { btn.disabled = false; btn.textContent = 'Создать аккаунт →'; }
 }
 
 async function logout() {
@@ -1241,9 +905,7 @@ async function logout() {
       });
     }
   } catch {}
-  clearTokens();
-  showWelcome();
-  showView('landing');
+  clearTokens(); showWelcome(); showView('landing');
 }
 
 function setTokens(at, rt) {
@@ -1271,7 +933,6 @@ async function tryRefreshToken() {
   } catch { return false; }
 }
 
-// ===== API helper =====
 async function api(url, options = {}) {
   const makeHeaders = () => {
     const h = { 'Content-Type': 'application/json' };
@@ -1309,7 +970,7 @@ function updateApiKeysBtnState() {
   if (label) label.textContent = hasApiKeys() ? 'API-ключи ✓' : 'API-ключи';
 }
 
-// ===== Top bar updater =====
+// ===== Top bar =====
 function updateTopBar(project) {
   const titleEl = document.getElementById('topBarTitle');
   const badgeEl = document.getElementById('topBarBadge');
@@ -1323,17 +984,18 @@ function updateTopBar(project) {
     exportBtn.style.opacity = '.25';
     exportBtn.style.pointerEvents = 'none';
     exportBtn.href = '#';
-    exportBtn.title = 'Сначала создайте и сгенерируйте проект';
     return;
   }
 
-  const modeLabel = project.mode === 'deluxe' ? 'Deluxe' : project.mode === 'pro' ? 'Pro' : project.mode === 'freetrial' ? 'Free Trial' : 'Standard';
+  const modeLabel = project.mode === 'deluxe' ? 'Делюкс' : 'Покадровый';
+  const sceneCount = project.scene_count || (project.scenes || []).length;
   titleEl.textContent = (project.name || project.scenario || 'Без названия').slice(0, 32);
-  badgeEl.textContent = `${modeLabel} · ${project.duration}с`;
+  badgeEl.textContent = `${modeLabel} · ${sceneCount} сцен`;
   badgeEl.style.display = '';
   progressEl.classList.add('visible');
+  renderProgressBar(project);
 
-  if (project.final_video_path) {
+  if (project.status === 'rendered' && project.final_video_path) {
     exportBtn.style.opacity = '';
     exportBtn.style.pointerEvents = '';
     exportBtn.href = `/api/projects/${project.id}/download`;
@@ -1342,11 +1004,10 @@ function updateTopBar(project) {
     exportBtn.style.opacity = '.25';
     exportBtn.style.pointerEvents = 'none';
     exportBtn.href = '#';
-    exportBtn.title = 'Сначала сгенерируйте видео полностью';
+    exportBtn.title = 'Сначала выполните рендер';
   }
 }
 
-// ===== Progress bar =====
 function renderProgressBar(project) {
   const steps = [
     { label: 'Сценарий', statuses: ['created', 'scenes_ready'] },
@@ -1361,9 +1022,7 @@ function renderProgressBar(project) {
     const isActive = i === currentStep;
     const cls = isDone ? 'done' : isActive ? 'active' : '';
     const content = isDone ? '✓' : (i + 1);
-    const connector = i < steps.length - 1
-      ? `<div class="pc-connector ${isDone ? 'done' : ''}"></div>`
-      : '';
+    const connector = i < steps.length - 1 ? `<div class="pc-connector ${isDone ? 'done' : ''}"></div>` : '';
     return `<div class="pc-step ${cls}">${content}<span class="pc-step-label">${step.label}</span></div>${connector}`;
   }).join('');
 }
@@ -1375,6 +1034,7 @@ function showWelcome() {
   document.getElementById('createView').style.display = 'none';
   document.getElementById('projectActionsBar').classList.remove('visible');
   updateTopBar(null);
+  stopPolling();
   currentProjectId = null; currentProject = null;
   document.querySelectorAll('.project-item').forEach(el => el.classList.remove('active'));
 }
@@ -1392,14 +1052,23 @@ function showCreateView() {
 }
 
 function cancelCreate() {
-  if (currentProjectId) {
-    loadProject(currentProjectId);
-  } else {
-    showWelcome();
-  }
+  if (currentProjectId) loadProject(currentProjectId);
+  else showWelcome();
 }
 
-// ===== API Keys Modal =====
+// ===== Create form =====
+function toggleModeOptions() {
+  const mode = document.querySelector('input[name=modeInput]:checked')?.value || 'standard';
+  document.getElementById('sceneCountGroup').style.display = mode === 'deluxe' ? 'none' : '';
+  document.getElementById('deluxeNote').style.display = mode === 'deluxe' ? '' : 'none';
+}
+
+function updateSceneCountLabel() {
+  const val = parseInt(document.getElementById('sceneCountInput').value);
+  document.getElementById('sceneCountLabel').textContent = `${val} ${val === 1 ? 'сцена' : val < 5 ? 'сцены' : 'сцен'} · ~${val * 5} сек`;
+}
+
+// ===== API Keys =====
 let _apiKeysOpenedForCreate = false;
 
 function showApiKeysModal(forCreate = false) {
@@ -1444,10 +1113,9 @@ function hideContextMenu() {
 }
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.context-menu') && !e.target.closest('.project-item-menu')) hideContextMenu();
+  if (!e.target.closest('.gear-popup') && !e.target.closest('.icon-btn-gear')) closeGearPopup();
 });
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') hideContextMenu();
-});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { hideContextMenu(); closeGearPopup(); } });
 
 function renameProject() {
   const projectId = contextMenuProjectId;
@@ -1462,8 +1130,7 @@ function renameProject() {
   const finish = async () => {
     const newName = input.value.trim();
     if (newName && newName !== currentName) {
-      try { await api(`/api/projects/${projectId}`, { method: 'PATCH', body: JSON.stringify({ name: newName }) }); }
-      catch {}
+      try { await api(`/api/projects/${projectId}`, { method: 'PATCH', body: JSON.stringify({ name: newName }) }); } catch {}
     }
     await loadProjects();
   };
@@ -1507,19 +1174,10 @@ async function loadProjects() {
   } catch (e) { console.error(e); }
 }
 
-function toggleModeOptions() {
-  const mode = document.getElementById('modeInput').value;
-  document.getElementById('durationGroup').style.display = (mode === 'pro' || mode === 'deluxe' || mode === 'freetrial') ? 'none' : '';
-  document.getElementById('freetrialNote').style.display = mode === 'freetrial' ? '' : 'none';
-  document.getElementById('proDurationNote').style.display = mode === 'pro' ? '' : 'none';
-  document.getElementById('deluxeNote').style.display = mode === 'deluxe' ? '' : 'none';
-  document.getElementById('voiceGroup').style.display = mode === 'deluxe' ? '' : 'none';
-}
-
 async function createProject() {
   const scenario = document.getElementById('scenarioInput').value.trim();
-  const mode = document.getElementById('modeInput').value;
-  const duration = (mode === 'pro' || mode === 'deluxe') ? 15 : mode === 'freetrial' ? 10 : parseInt(document.getElementById('durationInput').value);
+  const mode = document.querySelector('input[name=modeInput]:checked')?.value || 'standard';
+  const scene_count = parseInt(document.getElementById('sceneCountInput').value) || 5;
   const style = document.getElementById('styleInput').value;
   const errEl = document.getElementById('createError');
   const btn = document.getElementById('createBtn');
@@ -1528,7 +1186,7 @@ async function createProject() {
   btn.disabled = true;
   btn.innerHTML = '<span class="loading-dark"></span> Создание...';
   try {
-    const project = await api('/api/projects', { method: 'POST', body: JSON.stringify({ scenario, duration, style, mode }) });
+    const project = await api('/api/projects', { method: 'POST', body: JSON.stringify({ scenario, scene_count, style, mode }) });
     currentProjectId = project.id;
     await loadProjects();
     showProject(project);
@@ -1556,201 +1214,172 @@ function showProject(project) {
   document.getElementById('createView').style.display = 'none';
   document.getElementById('projectView').style.display = 'flex';
   document.getElementById('projectActionsBar').classList.add('visible');
-
-  // Hidden compat fields
-  document.getElementById('projectTitle').textContent = `${project.mode} · ${project.duration}с`;
-  document.getElementById('projectStatus').textContent = statusLabel(project.status);
-  document.getElementById('projectStatus').className = `status-badge status-${project.status}`;
   document.getElementById('projectScenario').textContent = project.scenario;
 
   updateTopBar(project);
-  renderProgressBar(project);
 
   const errEl = document.getElementById('generateError');
-  errEl.textContent = '';
-  errEl.classList.remove('visible');
+  errEl.textContent = ''; errEl.classList.remove('visible');
 
-  const isDeluxe = project.mode === 'deluxe';
   const scenes = project.scenes || [];
-  const mainScenes = scenes.filter(s => s.scene_type !== 'transition');
-  const allApproved = mainScenes.length > 0 && mainScenes.every(s => s.status === 'approved');
+  const allHaveImage = scenes.length > 0 && scenes.every(s => s.image_path);
   const allVideosDone = scenes.length > 0 && scenes.every(s => s.video_status === 'done');
+  const anyVideoInProgress = scenes.some(s => s.video_status === 'generating' || s.video_status === 'queued');
 
-  const canGenerate = project.status === 'scenes_ready' || project.status === 'done';
+  const canGenerate = project.status !== 'generating' && project.status !== 'rendering';
   const generateBtn = document.getElementById('generateBtn');
-  generateBtn.disabled = !canGenerate;
-  generateBtn.textContent = isDeluxe ? 'Создать кадр (сцена 1)' : 'Создать кадры';
+  generateBtn.disabled = !canGenerate || project.status === 'rendered';
+  generateBtn.textContent = 'Создать все кадры';
 
   const videoBtn = document.getElementById('videoBtn');
-  videoBtn.style.display = (!isDeluxe && allApproved) ? '' : 'none';
-  videoBtn.disabled = project.status === 'generating_videos';
-  if (project.status === 'generating_videos') {
-    videoBtn.innerHTML = '<span class="loading"></span> Создание видео...';
-  } else { videoBtn.textContent = 'Оживить сцены'; }
-
-  document.getElementById('resetVideoBtn').style.display = project.status === 'generating_videos' ? '' : 'none';
+  videoBtn.style.display = allHaveImage && !allVideosDone ? '' : 'none';
+  videoBtn.disabled = anyVideoInProgress;
+  videoBtn.textContent = anyVideoInProgress ? 'Генерация...' : 'Анимировать все';
 
   const renderBtn = document.getElementById('renderBtn');
-  renderBtn.style.display = allVideosDone ? '' : 'none';
+  renderBtn.style.display = allVideosDone && project.status !== 'rendered' ? '' : 'none';
   renderBtn.disabled = project.status === 'rendering';
-  if (project.status === 'rendering') {
-    renderBtn.innerHTML = '<span class="loading"></span> Сборка...';
-  } else { renderBtn.textContent = 'Собрать видео'; }
+  renderBtn.textContent = project.status === 'rendering' ? 'Сборка...' : 'Рендер';
 
-  // downloadBtn hidden compat
-  const downloadBtn = document.getElementById('downloadBtn');
-  downloadBtn.href = project.final_video_path ? `/api/projects/${project.id}/download` : '#';
+  renderScenes(scenes, project);
 
-  if (isDeluxe) renderScenesDeluxe(scenes, project);
-  else renderScenes(scenes, project);
-}
-
-// ===== Scene rendering helpers =====
-function calcSceneDuration(project) {
-  const mainCount = (project.scenes || []).filter(s => s.scene_type !== 'transition').length;
-  if (!mainCount || !project.duration) return 5;
-  return Math.round(project.duration / mainCount * 10) / 10;
-}
-
-function renderFrameCard(s, project, isLocked) {
-  const hasImage = !!s.image_path;
-  const isApproved = s.status === 'approved';
-  const videoDone = s.video_status === 'done';
-  const videoGenerating = s.video_status === 'generating';
-  const isDeluxe = project && project.mode === 'deluxe';
-  const duration = calcSceneDuration(project);
-
-  const imageHtml = hasImage
-    ? `<img src="${s.image_path}?t=${Date.now()}" alt="Сцена ${s.scene_number}" />`
-    : isLocked
-      ? `<div class="frame-placeholder"><span class="frame-num-label" style="font-size:48px;color:#ccc;">⏳</span></div>`
-      : `<div class="frame-placeholder"><span class="frame-num-label">${s.scene_number}</span></div>`;
-
-  const approvedSticker = isApproved ? `<div class="sticker-approved">✓ OK</div>` : '';
-
-  let statusHtml = '';
-  if (videoGenerating) {
-    statusHtml = `<div class="frame-status generating"><span class="loading-dark"></span> Генерация клипа...</div>`;
-  } else if (videoDone) {
-    statusHtml = `<div class="frame-status done">▶ Клип готов</div>`;
+  // Start polling if any video in progress
+  if (anyVideoInProgress || project.status === 'generating' || project.status === 'rendering') {
+    startPolling();
+  } else {
+    stopPolling();
   }
-
-  const errorHtml = (s.error_message || s.video_error)
-    ? `<div class="frame-error">${s.error_message || s.video_error}</div>` : '';
-
-  const promptEditHtml = `<textarea class="frame-prompt-edit" id="prompt-${s.id}">${s.image_prompt || ''}</textarea>`;
-
-  const vidPromptHtml = isApproved
-    ? `<div class="frame-vidprompt">
-        <div class="frame-vidprompt-label">Видео-промпт</div>
-        <textarea class="frame-prompt-edit frame-prompt-edit-visible" id="vidprompt-${s.id}" style="min-height:44px;">${s.video_prompt || ''}</textarea>
-      </div>` : '';
-
-  let actionsHtml = '';
-  if (hasImage) {
-    actionsHtml += `
-      <button class="icon-btn" onclick="togglePromptEdit('${s.id}')" title="Редактировать промпт">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-      </button>
-      <button class="icon-btn btn-regen" onclick="regenerateScene('${s.id}')" title="Перегенерировать">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-        REGEN
-      </button>`;
-    if (!isApproved && !videoDone) {
-      actionsHtml += `<button class="frame-approve-btn" onclick="approveScene('${s.id}')">✓ Принять</button>`;
-    }
-    if (isDeluxe && isApproved && !videoDone && !videoGenerating) {
-      actionsHtml += `<button class="frame-action-clip" onclick="deluxeStep()">▶ Клип</button>`;
-    }
-  } else if (!isLocked) {
-    actionsHtml = `<span class="frame-action-hint">Нажмите «Создать кадры»</span>`;
-  }
-
-  return `
-    <div class="frame-card ${isApproved ? 'is-approved' : ''} ${isLocked ? 'is-locked' : ''}">
-      <div class="frame-preview">
-        ${imageHtml}
-        <div class="sticker-badge">${duration}s</div>
-        ${approvedSticker}
-      </div>
-      <div class="frame-content">
-        ${errorHtml}
-        <div class="frame-desc">${s.description || ''}</div>
-        <div class="frame-prompt-text" onclick="togglePromptEdit('${s.id}')">${s.image_prompt || 'нет промпта'}</div>
-        ${promptEditHtml}
-        ${vidPromptHtml}
-        ${statusHtml}
-        <div class="frame-actions">${actionsHtml}</div>
-      </div>
-    </div>`;
 }
 
-function renderTransitionNode(s) {
-  const isDone = s.video_status === 'done';
-  const isGenerating = s.video_status === 'generating';
-  const hasError = !!s.video_error;
-  const pillClass = hasError ? 'pill-error' : isDone ? 'pill-done' : isGenerating ? 'pill-generating' : '';
-  const label = hasError ? '!' : isGenerating ? '...' : 'МОРФ';
-  return `
-    <div class="transition-node">
-      <div class="transition-pill ${pillClass}" title="${s.video_error || ''}">${label}</div>
-    </div>`;
-}
-
+// ===== Scene rendering =====
 function renderScenes(scenes, project) {
   const container = document.getElementById('scenesContainer');
   if (!scenes || scenes.length === 0) {
-    container.innerHTML = '<div class="timeline-empty">Кадры появятся после генерации</div>';
+    container.innerHTML = '<div class="timeline-empty">Сцены появятся после создания</div>';
     return;
   }
-  const isPro = project && project.mode === 'pro';
-  let html = '';
-  scenes.forEach((s, i) => {
-    if (s.scene_type === 'transition') {
-      html += renderTransitionNode(s);
-    } else {
-      html += renderFrameCard(s, project, false);
-      if (!isPro && i < scenes.length - 1 && scenes[i + 1] && scenes[i + 1].scene_type !== 'transition') {
-        html += `<div class="scene-connector"><div class="connector-line"></div></div>`;
-      }
-    }
-  });
-  container.innerHTML = html;
-}
 
-function renderScenesDeluxe(scenes, project) {
-  const container = document.getElementById('scenesContainer');
-  if (!scenes || scenes.length === 0) {
-    container.innerHTML = '<div class="timeline-empty">Нажмите «Создать кадр» чтобы начать</div>';
-    return;
-  }
   let html = '';
   scenes.forEach((s, i) => {
-    const isLocked = !s.image_path && i > 0;
-    html += renderFrameCard(s, project, isLocked);
+    html += renderFrameCard(s, project);
     if (i < scenes.length - 1) {
       html += `<div class="scene-connector"><div class="connector-line"></div></div>`;
     }
   });
   container.innerHTML = html;
+
+  // Bind video hover events
+  scenes.forEach(s => {
+    if (!s.video_path) return;
+    const preview = document.getElementById(`preview-${s.id}`);
+    const video = document.getElementById(`video-${s.id}`);
+    const img = document.getElementById(`img-${s.id}`);
+    if (!preview || !video) return;
+    preview.addEventListener('mouseenter', () => {
+      video.style.display = 'block';
+      if (img) img.style.display = 'none';
+      video.play().catch(() => {});
+    });
+    preview.addEventListener('mouseleave', () => {
+      video.style.display = 'none';
+      if (img) img.style.display = 'block';
+      video.pause();
+    });
+  });
 }
 
-async function deluxeStep() {
-  const errEl = document.getElementById('generateError');
-  errEl.textContent = ''; errEl.classList.remove('visible');
-  try {
-    const vidPromptEls = document.querySelectorAll('[id^="vidprompt-"]');
-    for (const el of vidPromptEls) {
-      const sceneId = el.id.replace('vidprompt-', '');
-      const val = el.value.trim();
-      if (val) await api(`/api/projects/${currentProjectId}/scenes/${sceneId}`, { method: 'PATCH', body: JSON.stringify({ video_prompt: val }) });
-    }
-    await api(`/api/projects/${currentProjectId}/step`, { method: 'POST' });
-    startVideoPolling();
-  } catch (e) {
-    errEl.textContent = e.message;
-    errEl.classList.add('visible');
+function renderFrameCard(s, project) {
+  const hasImage = !!s.image_path;
+  const videoDone = s.video_status === 'done';
+  const videoGenerating = s.video_status === 'generating';
+  const videoQueued = s.video_status === 'queued';
+  const videoInProgress = videoGenerating || videoQueued;
+  const isDeluxe = project && project.mode === 'deluxe';
+  const clipDur = s.clip_duration || 5;
+
+  // Preview content
+  let previewContent = '';
+  if (hasImage) {
+    previewContent = `<img id="img-${s.id}" src="${s.image_path}?t=${Date.now()}" alt="Сцена ${s.scene_number}" />`;
+  } else {
+    previewContent = `<div class="frame-placeholder"><span class="frame-num-label">${s.scene_number}</span></div>`;
   }
+  if (videoDone && s.video_path) {
+    previewContent += `<video id="video-${s.id}" src="${s.video_path}" muted loop playsinline></video>`;
+    previewContent += `<div class="sticker-done">▶ ${clipDur}s</div>`;
+  } else {
+    previewContent += `<div class="sticker-badge">${clipDur}s</div>`;
+  }
+
+  // Spinner
+  let spinnerLabel = '';
+  if (s.status === 'pending' && s.image_path === null && project.status === 'generating') spinnerLabel = 'Рисуем...';
+  if (videoGenerating) spinnerLabel = 'Анимируем...';
+  if (videoQueued) spinnerLabel = 'В очереди...';
+  const spinnerVisible = (videoInProgress) || (project.status === 'generating' && !hasImage);
+
+  // Status text
+  let statusHtml = '';
+  if (videoGenerating) statusHtml = `<div class="frame-video-status generating"><span class="loading-dark"></span> Генерация клипа...</div>`;
+  else if (videoQueued) statusHtml = `<div class="frame-video-status queued">В очереди...</div>`;
+  else if (videoDone) statusHtml = `<div class="frame-video-status done">▶ Клип готов</div>`;
+  else if (s.video_status === 'error') statusHtml = `<div class="frame-video-status error">${s.video_error || 'Ошибка генерации клипа'}</div>`;
+
+  const errorHtml = s.error_message ? `<div class="frame-error">${s.error_message}</div>` : '';
+
+  // Action buttons
+  let actionsHtml = '';
+
+  // Gear icon (always)
+  actionsHtml += `<button class="icon-btn icon-btn-gear" onclick="openGearPopup('${s.id}', this)" title="Настройки">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  </button>`;
+
+  if (!hasImage) {
+    // No image: show generate button
+    actionsHtml += `<button class="btn-card btn-card-primary" onclick="generateSceneImage('${s.id}')">Сгенерировать</button>`;
+  } else {
+    // Has image: regen icon
+    actionsHtml += `<button class="icon-btn" onclick="regenerateScene('${s.id}')" title="Пересоздать">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+    </button>`;
+
+    // Animate button
+    if (!videoInProgress && !videoDone) {
+      const isLocked = isDeluxe && s.scene_number > 1;
+      // For deluxe: check if we actually have image_path set (set by last_frame)
+      const canAnimate = !isLocked || (isLocked && hasImage);
+      actionsHtml += `<button class="btn-card btn-card-green" onclick="generateSceneVideo('${s.id}')" ${!canAnimate ? 'disabled title="Сначала создайте клип предыдущей сцены"' : ''}>▶ Клип</button>`;
+    }
+    if (videoDone) {
+      actionsHtml += `<button class="btn-card btn-card-green" onclick="generateSceneVideo('${s.id}')" style="opacity:.6" title="Пересоздать клип">↺ Клип</button>`;
+    }
+  }
+
+  return `
+    <div class="frame-card ${videoDone ? 'video-active' : ''}">
+      <div class="frame-preview" id="preview-${s.id}">
+        ${previewContent}
+        <div class="frame-spinner ${spinnerVisible ? 'visible' : ''}">
+          <div class="frame-spinner-inner">
+            <span class="loading-dark"></span>
+            <span class="frame-spinner-label">${spinnerLabel}</span>
+          </div>
+        </div>
+      </div>
+      <div class="frame-content">
+        ${errorHtml}
+        <div class="frame-desc">${s.description || ''}</div>
+        ${statusHtml}
+        <div class="frame-prompt-text" onclick="togglePromptEdit('${s.id}')">${s.image_prompt || 'нет промпта'}</div>
+        <textarea class="frame-prompt-edit" id="prompt-${s.id}">${s.image_prompt || ''}</textarea>
+        <div class="frame-vidprompt">
+          <div class="frame-vidprompt-label">Видео-промпт</div>
+          <textarea class="frame-prompt-edit frame-prompt-always" id="vidprompt-${s.id}" style="min-height:44px;">${s.video_prompt || ''}</textarea>
+        </div>
+        <div class="frame-actions">${actionsHtml}</div>
+      </div>
+    </div>`;
 }
 
 function togglePromptEdit(sceneId) {
@@ -1758,6 +1387,7 @@ function togglePromptEdit(sceneId) {
   if (el) el.classList.toggle('is-visible');
 }
 
+// ===== Image generation =====
 async function generateImages() {
   const btn = document.getElementById('generateBtn');
   const errEl = document.getElementById('generateError');
@@ -1768,71 +1398,97 @@ async function generateImages() {
     await api(`/api/projects/${currentProjectId}/generate`, { method: 'POST' });
     await loadProject(currentProjectId);
   } catch (e) {
-    errEl.textContent = e.message;
-    errEl.classList.add('visible');
+    errEl.textContent = e.message; errEl.classList.add('visible');
   } finally {
-    btn.disabled = false;
-    btn.textContent = 'Создать кадры';
+    btn.disabled = false; btn.textContent = 'Создать все кадры';
+  }
+}
+
+async function generateSceneImage(sceneId) {
+  const promptEl = document.getElementById(`prompt-${sceneId}`);
+  const newPrompt = promptEl?.value?.trim();
+  const errEl = document.getElementById('generateError');
+  errEl.textContent = ''; errEl.classList.remove('visible');
+
+  // Show spinner on the card
+  const card = document.querySelector(`#preview-${sceneId} .frame-spinner`);
+  if (card) { card.classList.add('visible'); card.querySelector('.frame-spinner-label').textContent = 'Рисуем...'; }
+
+  try {
+    const body = newPrompt ? { image_prompt: newPrompt } : {};
+    await api(`/api/projects/${currentProjectId}/scenes/${sceneId}/generate-image`, { method: 'POST', body: JSON.stringify(body) });
+    await loadProject(currentProjectId);
+  } catch (e) {
+    errEl.textContent = e.message; errEl.classList.add('visible');
+    if (card) card.classList.remove('visible');
   }
 }
 
 async function regenerateScene(sceneId) {
   const promptEl = document.getElementById(`prompt-${sceneId}`);
   const newPrompt = promptEl?.value?.trim();
+  const errEl = document.getElementById('generateError');
+  errEl.textContent = ''; errEl.classList.remove('visible');
+
+  const card = document.querySelector(`#preview-${sceneId} .frame-spinner`);
+  if (card) { card.classList.add('visible'); card.querySelector('.frame-spinner-label').textContent = 'Рисуем...'; }
+
   try {
     const body = newPrompt ? { image_prompt: newPrompt } : {};
     await api(`/api/projects/${currentProjectId}/scenes/${sceneId}/regenerate`, { method: 'POST', body: JSON.stringify(body) });
     await loadProject(currentProjectId);
-  } catch (e) { alert('Ошибка: ' + e.message); }
-}
-
-async function approveScene(sceneId) {
-  try {
-    await api(`/api/projects/${currentProjectId}/scenes/${sceneId}`, { method: 'PATCH', body: JSON.stringify({ status: 'approved' }) });
-    await loadProject(currentProjectId);
-  } catch (e) { alert('Ошибка: ' + e.message); }
-}
-
-async function generateVideos() {
-  const btn = document.getElementById('videoBtn');
-  const errEl = document.getElementById('generateError');
-  errEl.textContent = ''; errEl.classList.remove('visible');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="loading"></span> Создание видео...';
-  try {
-    const vidPromptEls = document.querySelectorAll('[id^="vidprompt-"]');
-    for (const el of vidPromptEls) {
-      const sceneId = el.id.replace('vidprompt-', '');
-      const val = el.value.trim();
-      if (val) await api(`/api/projects/${currentProjectId}/scenes/${sceneId}`, { method: 'PATCH', body: JSON.stringify({ video_prompt: val }) });
-    }
-    await api(`/api/projects/${currentProjectId}/video`, { method: 'POST' });
-    startVideoPolling();
   } catch (e) {
-    errEl.textContent = e.message;
-    errEl.classList.add('visible');
-    btn.disabled = false;
-    btn.textContent = 'Оживить сцены';
+    errEl.textContent = e.message; errEl.classList.add('visible');
+    if (card) card.classList.remove('visible');
   }
 }
 
-let videoPollTimer = null;
-function startVideoPolling() {
-  stopVideoPolling();
-  videoPollTimer = setInterval(async () => {
-    if (!currentProjectId) { stopVideoPolling(); return; }
-    try {
-      const project = await api(`/api/projects/${currentProjectId}`);
-      showProject(project);
-      if (project.status !== 'generating_videos') stopVideoPolling();
-    } catch {}
-  }, 5000);
+// ===== Video generation =====
+async function generateSceneVideo(sceneId) {
+  // Save video prompt first
+  const vidPromptEl = document.getElementById(`vidprompt-${sceneId}`);
+  if (vidPromptEl?.value?.trim()) {
+    try { await api(`/api/projects/${currentProjectId}/scenes/${sceneId}`, { method: 'PATCH', body: JSON.stringify({ video_prompt: vidPromptEl.value.trim() }) }); } catch {}
+  }
+
+  const errEl = document.getElementById('generateError');
+  errEl.textContent = ''; errEl.classList.remove('visible');
+  try {
+    await api(`/api/projects/${currentProjectId}/scenes/${sceneId}/video`, { method: 'POST' });
+    await loadProject(currentProjectId);
+  } catch (e) {
+    errEl.textContent = e.message; errEl.classList.add('visible');
+  }
 }
-function stopVideoPolling() {
-  if (videoPollTimer) { clearInterval(videoPollTimer); videoPollTimer = null; }
+
+async function generateVideos() {
+  // Save all video prompts first
+  const vidPromptEls = document.querySelectorAll('[id^="vidprompt-"]');
+  for (const el of vidPromptEls) {
+    const sceneId = el.id.replace('vidprompt-', '');
+    const val = el.value.trim();
+    if (val) {
+      try { await api(`/api/projects/${currentProjectId}/scenes/${sceneId}`, { method: 'PATCH', body: JSON.stringify({ video_prompt: val }) }); } catch {}
+    }
+  }
+
+  const errEl = document.getElementById('generateError');
+  errEl.textContent = ''; errEl.classList.remove('visible');
+  try {
+    await api(`/api/projects/${currentProjectId}/video`, { method: 'POST' });
+    await loadProject(currentProjectId);
+  } catch (e) {
+    errEl.textContent = e.message; errEl.classList.add('visible');
+  }
+}
+
+// ===== Render =====
+function confirmRender() {
+  document.getElementById('renderConfirmModal').classList.add('visible');
 }
 
 async function renderFinalVideo() {
+  document.getElementById('renderConfirmModal').classList.remove('visible');
   const btn = document.getElementById('renderBtn');
   const errEl = document.getElementById('generateError');
   errEl.textContent = ''; errEl.classList.remove('visible');
@@ -1842,20 +1498,137 @@ async function renderFinalVideo() {
     await api(`/api/projects/${currentProjectId}/render`, { method: 'POST' });
     await loadProject(currentProjectId);
   } catch (e) {
-    errEl.textContent = e.message;
-    errEl.classList.add('visible');
+    errEl.textContent = e.message; errEl.classList.add('visible');
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Собрать видео';
+    btn.textContent = 'Рендер';
   }
 }
 
-async function resetVideoGeneration() {
-  if (!currentProjectId) return;
+// ===== Polling =====
+let pollTimer = null;
+
+function startPolling() {
+  if (pollTimer) return;
+  pollTimer = setInterval(async () => {
+    if (!currentProjectId) { stopPolling(); return; }
+    try {
+      const project = await api(`/api/projects/${currentProjectId}`);
+      const scenes = project.scenes || [];
+      const anyInProgress = scenes.some(s =>
+        s.video_status === 'generating' || s.video_status === 'queued'
+      ) || project.status === 'generating' || project.status === 'rendering';
+
+      showProject(project);
+      if (!anyInProgress) stopPolling();
+    } catch {}
+  }, 4000);
+}
+
+function stopPolling() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+}
+
+// ===== Gear Popup =====
+async function openGearPopup(sceneId, triggerEl) {
+  gearPopupSceneId = sceneId;
+  const popup = document.getElementById('gearPopup');
+
+  // Position near trigger
+  const rect = triggerEl.getBoundingClientRect();
+  let left = rect.left;
+  let top = rect.bottom + 6;
+  // Keep in viewport
+  if (left + 280 > window.innerWidth - 16) left = window.innerWidth - 280 - 16;
+  if (top + 350 > window.innerHeight - 16) top = rect.top - 350 - 6;
+  popup.style.left = `${left}px`;
+  popup.style.top = `${top}px`;
+  popup.classList.add('visible');
+
+  // Set current clip duration from scene
+  if (currentProject) {
+    const scene = (currentProject.scenes || []).find(s => s.id === sceneId);
+    if (scene) {
+      const dur = scene.clip_duration || 5;
+      document.querySelectorAll('.gear-dur-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.dur) === dur);
+        btn.disabled = scene.video_status === 'generating' || scene.video_status === 'queued';
+      });
+    }
+  }
+
+  // Load history
+  await refreshGearPopup(sceneId);
+}
+
+function closeGearPopup() {
+  document.getElementById('gearPopup').classList.remove('visible');
+  gearPopupSceneId = null;
+}
+
+async function refreshGearPopup(sceneId) {
   try {
-    stopVideoPolling();
-    await api(`/api/projects/${currentProjectId}/video/reset`, { method: 'POST' });
+    const { images, videos } = await api(`/api/projects/${currentProjectId}/scenes/${sceneId}/history`);
+
+    const imgList = document.getElementById('gearImageHistoryList');
+    if (images.length === 0) {
+      imgList.innerHTML = '<div class="gear-history-empty">Нет сохранённых версий</div>';
+    } else {
+      imgList.innerHTML = images.map(item => `
+        <div class="gear-history-item">
+          <img class="gear-history-thumb" src="${item.path}?t=${Date.now()}" />
+          <span class="gear-history-time">${formatTime(item.created_at)}</span>
+          <button class="gear-restore-btn" onclick="restoreHistoryItem('${item.id}', 'image')">Вернуть</button>
+        </div>
+      `).join('');
+    }
+
+    const vidList = document.getElementById('gearVideoHistoryList');
+    if (videos.length === 0) {
+      vidList.innerHTML = '<div class="gear-history-empty">Нет сохранённых версий</div>';
+    } else {
+      vidList.innerHTML = videos.map(item => `
+        <div class="gear-history-item">
+          <video class="gear-history-thumb-video" src="${item.path}" muted loop onmouseenter="this.play()" onmouseleave="this.pause()"></video>
+          <span class="gear-history-time">${formatTime(item.created_at)}</span>
+          <button class="gear-restore-btn" onclick="restoreHistoryItem('${item.id}', 'video')">Вернуть</button>
+        </div>
+      `).join('');
+    }
+  } catch (e) {
+    console.error('Failed to load history:', e);
+  }
+}
+
+function formatTime(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  return d.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
+}
+
+async function setClipDuration(dur) {
+  if (!gearPopupSceneId) return;
+  try {
+    await api(`/api/projects/${currentProjectId}/scenes/${gearPopupSceneId}/clip-duration`, {
+      method: 'PATCH', body: JSON.stringify({ duration: dur })
+    });
+    document.querySelectorAll('.gear-dur-btn').forEach(btn => {
+      btn.classList.toggle('active', parseInt(btn.dataset.dur) === dur);
+    });
+    // Update project data
     await loadProject(currentProjectId);
+    // Reopen gear popup on same scene
+    const triggerEl = document.querySelector(`#preview-${gearPopupSceneId}`)?.closest('.frame-card')?.querySelector('.icon-btn-gear');
+    if (triggerEl) openGearPopup(gearPopupSceneId, triggerEl);
+  } catch (e) { alert('Ошибка: ' + e.message); }
+}
+
+async function restoreHistoryItem(historyId, type) {
+  if (!gearPopupSceneId) return;
+  try {
+    await api(`/api/projects/${currentProjectId}/scenes/${gearPopupSceneId}/history/${historyId}/restore`, { method: 'POST' });
+    await loadProject(currentProjectId);
+    await refreshGearPopup(gearPopupSceneId);
   } catch (e) { alert('Ошибка: ' + e.message); }
 }
 

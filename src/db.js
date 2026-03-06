@@ -3,6 +3,33 @@ const { Pool } = pg;
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
+// ===== Migrations =====
+
+export async function runMigrations() {
+  try { await pool.query('ALTER TABLE projects ADD COLUMN scene_count INTEGER'); } catch {}
+  try { await pool.query('ALTER TABLE scenes ADD COLUMN clip_duration INTEGER DEFAULT 5'); } catch {}
+  try { await pool.query('ALTER TABLE scenes ADD COLUMN fal_video_request_id TEXT'); } catch {}
+  try { await pool.query('ALTER TABLE scenes ADD COLUMN fal_video_model TEXT'); } catch {}
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS scene_history (
+        id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        scene_id   UUID NOT NULL REFERENCES scenes(id) ON DELETE CASCADE,
+        type       VARCHAR(10) NOT NULL CHECK (type IN ('image', 'video')),
+        path       TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_scene_history_scene_id ON scene_history(scene_id)');
+  } catch {}
+}
+
+export async function resetOrphanedGeneratingScenes() {
+  await pool.query(
+    "UPDATE scenes SET video_status = 'pending' WHERE video_status IN ('generating', 'queued') AND fal_video_request_id IS NULL"
+  );
+}
+
 // ===== Users =====
 
 export async function createUser(email, username, passwordHash) {
@@ -87,10 +114,10 @@ export async function deleteEmailVerification(email) {
 
 // ===== Projects =====
 
-export async function createProject(id, userId, scenario, duration, characterDescription, status, style, mode) {
+export async function createProject(id, userId, scenario, duration, characterDescription, status, style, mode, sceneCount) {
   await pool.query(
-    'INSERT INTO projects (id, user_id, scenario, duration, character_description, status, style, mode) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-    [id, userId, scenario, duration, characterDescription, status, style, mode]
+    'INSERT INTO projects (id, user_id, scenario, duration, character_description, status, style, mode, scene_count) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+    [id, userId, scenario, duration, characterDescription, status, style, mode, sceneCount || null]
   );
 }
 
@@ -103,6 +130,15 @@ export async function listProjects(userId) {
   const result = await pool.query(
     'SELECT * FROM projects WHERE user_id = $1 ORDER BY created_at DESC',
     [userId]
+  );
+  return result.rows;
+}
+
+export async function getProjectsByModes(modes) {
+  const placeholders = modes.map((_, i) => `$${i + 1}`).join(', ');
+  const result = await pool.query(
+    `SELECT * FROM projects WHERE mode IN (${placeholders})`,
+    modes
   );
   return result.rows;
 }
@@ -193,19 +229,103 @@ export async function updateSceneVideoError(errorMsg, id) {
   );
 }
 
+export async function updateSceneVideoStatus(status, id) {
+  await pool.query('UPDATE scenes SET video_status = $1 WHERE id = $2', [status, id]);
+}
+
 export async function updateSceneLastFrame(lastFramePath, id) {
   await pool.query('UPDATE scenes SET last_frame_path = $1 WHERE id = $2', [lastFramePath, id]);
 }
 
-export async function resetSceneVideos(projectId) {
+export async function updateSceneClipDuration(duration, id) {
+  await pool.query('UPDATE scenes SET clip_duration = $1 WHERE id = $2', [duration, id]);
+}
+
+export async function setSceneFalRequest(requestId, model, id) {
   await pool.query(
-    "UPDATE scenes SET video_path = NULL, video_status = 'pending', video_error = NULL WHERE project_id = $1 AND video_status != 'done'",
-    [projectId]
+    'UPDATE scenes SET fal_video_request_id = $1, fal_video_model = $2 WHERE id = $3',
+    [requestId, model, id]
   );
+}
+
+export async function clearSceneFalRequest(id) {
+  await pool.query(
+    'UPDATE scenes SET fal_video_request_id = NULL, fal_video_model = NULL WHERE id = $1',
+    [id]
+  );
+}
+
+export async function getScenesPendingRecovery() {
+  const result = await pool.query(
+    "SELECT * FROM scenes WHERE video_status IN ('generating', 'queued') AND fal_video_request_id IS NOT NULL"
+  );
+  return result.rows;
 }
 
 export async function deleteScenesByProject(projectId) {
   await pool.query('DELETE FROM scenes WHERE project_id = $1', [projectId]);
+}
+
+// ===== Scene History =====
+
+export async function addSceneHistory(sceneId, type, filePath) {
+  await pool.query(
+    'INSERT INTO scene_history (scene_id, type, path) VALUES ($1, $2, $3)',
+    [sceneId, type, filePath]
+  );
+}
+
+export async function getSceneHistory(sceneId, type) {
+  if (type) {
+    const result = await pool.query(
+      'SELECT * FROM scene_history WHERE scene_id = $1 AND type = $2 ORDER BY created_at DESC',
+      [sceneId, type]
+    );
+    return result.rows;
+  }
+  const result = await pool.query(
+    'SELECT * FROM scene_history WHERE scene_id = $1 ORDER BY created_at DESC',
+    [sceneId]
+  );
+  return result.rows;
+}
+
+export async function pruneSceneHistory(sceneId, type, maxKeep = 2) {
+  const result = await pool.query(
+    'SELECT id, path FROM scene_history WHERE scene_id = $1 AND type = $2 ORDER BY created_at DESC',
+    [sceneId, type]
+  );
+  const rows = result.rows;
+  if (rows.length <= maxKeep) return [];
+  const toDelete = rows.slice(maxKeep);
+  const ids = toDelete.map(r => r.id);
+  await pool.query('DELETE FROM scene_history WHERE id = ANY($1)', [ids]);
+  return toDelete.map(r => r.path);
+}
+
+export async function getSceneHistoryItem(historyId) {
+  const result = await pool.query('SELECT * FROM scene_history WHERE id = $1', [historyId]);
+  return result.rows[0] || null;
+}
+
+export async function deleteSceneHistory(sceneId) {
+  const result = await pool.query(
+    'DELETE FROM scene_history WHERE scene_id = $1 RETURNING path',
+    [sceneId]
+  );
+  return result.rows.map(r => r.path);
+}
+
+export async function deleteProjectSceneHistory(projectId) {
+  const result = await pool.query(
+    'DELETE FROM scene_history WHERE scene_id IN (SELECT id FROM scenes WHERE project_id = $1) RETURNING path',
+    [projectId]
+  );
+  return result.rows.map(r => r.path);
+}
+
+export async function deleteHistoryItem(historyId) {
+  await pool.query('DELETE FROM scene_history WHERE id = $1', [historyId]);
 }
 
 export default pool;
