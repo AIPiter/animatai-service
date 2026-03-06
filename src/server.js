@@ -113,7 +113,7 @@ async function processVideoJob({ sceneId, projectId, falKey }) {
         throw new Error(`Scene ${scene.scene_number} has no image`);
       }
 
-      const clipDuration = scene.clip_duration || 5;
+      const clipDuration = project.mode === 'standard' ? 6 : (scene.clip_duration || 5);
       const videoPrompt = scene.video_prompt || 'gentle subtle animation, slight movement';
 
       if (project.mode === 'deluxe') {
@@ -608,7 +608,8 @@ app.patch('/api/projects/:id/scenes/:sceneId/clip-duration', requireAuth, async 
   if (!scene || scene.project_id !== project.id) return res.status(404).json({ error: 'Scene not found' });
 
   const { duration } = req.body;
-  if (![3, 5, 7].includes(duration)) return res.status(400).json({ error: 'duration must be 3, 5, or 7' });
+  const allowed = project.mode === 'deluxe' ? [5, 10] : [6];
+  if (!allowed.includes(duration)) return res.status(400).json({ error: `duration must be one of: ${allowed.join(', ')}` });
   if (scene.video_status === 'generating' || scene.video_status === 'queued') {
     return res.status(409).json({ error: 'Cannot change duration while video is generating' });
   }
@@ -752,7 +753,7 @@ app.post('/api/projects/:id/render', requireAuth, async (req, res) => {
     const subtitles = [];
     let currentTime = 0;
     for (const scene of scenes) {
-      const clipDuration = scene.clip_duration || 5;
+      const clipDuration = project.mode === 'standard' ? 6 : (scene.clip_duration || 5);
       const sceneEnd = currentTime + clipDuration;
 
       const text = scene.subtitle_text || '';

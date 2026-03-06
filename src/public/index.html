@@ -1549,11 +1549,23 @@ async function openGearPopup(sceneId, triggerEl) {
   if (currentProject) {
     const scene = (currentProject.scenes || []).find(s => s.id === sceneId);
     if (scene) {
-      const dur = scene.clip_duration || 5;
-      document.querySelectorAll('.gear-dur-btn').forEach(btn => {
-        btn.classList.toggle('active', parseInt(btn.dataset.dur) === dur);
-        btn.disabled = scene.video_status === 'generating' || scene.video_status === 'queued';
-      });
+      const durBtns = document.getElementById('gearDurSection').querySelector('.gear-dur-btns');
+      const inProgress = scene.video_status === 'generating' || scene.video_status === 'queued';
+      if (currentProject.mode === 'standard') {
+        // MiniMax always generates 6s, no choice
+        durBtns.innerHTML = `<button class="gear-dur-btn active" disabled style="flex:none;padding:7px 16px">6с</button>
+          <span style="font-size:11px;color:#555;margin-left:8px;align-self:center">фиксировано (MiniMax)</span>`;
+      } else {
+        // Kling supports 5s and 10s
+        const dur = scene.clip_duration || 5;
+        durBtns.innerHTML = `
+          <button class="gear-dur-btn" data-dur="5" onclick="setClipDuration(5)">5с</button>
+          <button class="gear-dur-btn" data-dur="10" onclick="setClipDuration(10)">10с</button>`;
+        durBtns.querySelectorAll('.gear-dur-btn').forEach(btn => {
+          btn.classList.toggle('active', parseInt(btn.dataset.dur) === dur);
+          btn.disabled = inProgress;
+        });
+      }
     }
   }
 
