@@ -6,7 +6,7 @@
   <title>AnimatAI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@700&family=Inter:wght@400;500;600;800&family=Marck+Script&family=Oswald:wght@700&family=Playfair+Display:ital,wght@1,700&family=Russo+One&family=Unbounded:wght@900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/theme.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
@@ -182,16 +182,22 @@
     /* ===== APP SHELL ===== */
     #view-app { display: flex; height: 100vh; overflow: hidden; }
 
-    .sidebar { width: 260px; flex-shrink: 0; border-right: 1px solid var(--border); display: flex; flex-direction: column; transition: width .3s ease, border-color .3s ease; overflow: hidden; }
+    .sidebar { width: 260px; flex-shrink: 0; border-right: 1px solid var(--border); display: flex; flex-direction: column; transition: width .3s cubic-bezier(.4,0,.2,1), border-color .3s ease; overflow: hidden; }
     .sidebar.collapsed { width: 0; border-right-color: transparent; }
-    .sidebar-brand { padding: 16px 16px 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); flex-shrink: 0; width: 260px; }
+    .sidebar-brand { padding: 16px 16px 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); flex-shrink: 0; min-width: 260px; transition: opacity .15s ease; }
     .sidebar-toggle { width: 30px; height: 30px; background: transparent; border: none; color: var(--muted); cursor: pointer; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: color .15s, background .15s; }
     .sidebar-toggle:hover { color: var(--text); background: rgba(255,255,255,.05); }
-    .brand-name { font-size: 16px; font-weight: var(--fw-bold); letter-spacing: -.03em; }
-    .sidebar-new-btn { margin: 12px 16px 8px; width: calc(100% - 32px); flex-shrink: 0; background: var(--accent); color: var(--text-card); border: var(--border-width) solid var(--text-card); border-radius: var(--radius-pill); padding: 9px 14px; font-size: 13px; font-weight: var(--fw-bold); cursor: pointer; font-family: inherit; text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; transition: background .15s; }
+    .brand-name { font-size: 16px; font-weight: var(--fw-bold); letter-spacing: -.03em; white-space: nowrap; transition: opacity .15s ease; }
+    .sidebar-new-btn { margin: 12px 16px 8px; width: calc(100% - 32px); min-width: 228px; flex-shrink: 0; background: var(--accent); color: var(--text-card); border: var(--border-width) solid var(--text-card); border-radius: var(--radius-pill); padding: 9px 14px; font-size: 13px; font-weight: var(--fw-bold); cursor: pointer; font-family: inherit; text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; transition: background .15s, opacity .15s ease; }
     .sidebar-new-btn:hover { background: var(--accent-dark); }
-    .sidebar-section-header { font-size: 11px; font-weight: var(--fw-bold); color: #444; text-transform: uppercase; letter-spacing: .08em; padding: 14px 20px 6px; flex-shrink: 0; width: 260px; }
-    .sidebar-projects { flex: 1; overflow-y: auto; padding: 4px 8px; width: 260px; }
+    .sidebar-section-header { font-size: 11px; font-weight: var(--fw-bold); color: #444; text-transform: uppercase; letter-spacing: .08em; padding: 14px 20px 6px; flex-shrink: 0; min-width: 260px; transition: opacity .15s ease; }
+    .sidebar-projects { flex: 1; overflow-y: auto; padding: 4px 8px; min-width: 260px; transition: opacity .15s ease; }
+    /* Fade all sidebar content when collapsing */
+    .sidebar.collapsed .sidebar-brand,
+    .sidebar.collapsed .sidebar-new-btn,
+    .sidebar.collapsed .sidebar-section-header,
+    .sidebar.collapsed .sidebar-projects,
+    .sidebar.collapsed .sidebar-footer { opacity: 0; pointer-events: none; }
     .sidebar-empty { color: #444; font-size: 13px; padding: 20px 12px; line-height: 1.6; }
     .sidebar-section-label { font-size: 10px; color: #444; font-weight: var(--fw-medium); text-transform: uppercase; letter-spacing: .08em; padding: 8px 10px 4px; }
     .project-item { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border-radius: 12px; cursor: pointer; font-size: 13px; color: #666; transition: all .2s; }
@@ -204,7 +210,7 @@
     .project-item.active .project-item-menu:hover { opacity: 1; }
     .project-item-input { background: transparent; border: none; outline: none; color: inherit; font: inherit; width: 100%; font-size: 13px; }
 
-    .sidebar-footer { padding: 10px 8px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; width: 260px; }
+    .sidebar-footer { padding: 10px 8px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; min-width: 260px; transition: opacity .15s ease; }
     .sidebar-footer-btn { width: 100%; background: none; border: 1px solid var(--border); border-radius: 10px; color: var(--muted); padding: 9px 12px; font-size: 12px; font-weight: var(--fw-medium); cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 8px; transition: color .15s, border-color .15s, background .15s; }
     .sidebar-footer-btn:hover { color: var(--text); border-color: #444; background: rgba(255,255,255,.03); }
     .sidebar-footer-btn svg { flex-shrink: 0; }
@@ -255,18 +261,63 @@
 
     .error { color: var(--danger); font-size: 13px; }
 
-    .main-canvas { flex: 1; position: relative; overflow: hidden; background-image: radial-gradient(#222 1px, transparent 1px); background-size: 20px 20px; }
+    .main-canvas { flex: 1; position: relative; overflow: hidden; }
+    .main-canvas.dot-grid { background-image: radial-gradient(#222 1px, transparent 1px); background-size: 20px 20px; }
 
     /* ===== WELCOME ===== */
-    #welcomeScreen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; gap: 16px; overflow-y: auto; }
-    .welcome-logo { font-size: 48px; font-weight: var(--fw-bold); letter-spacing: -.04em; }
-    .welcome-logo span { color: var(--accent); }
-    .welcome-sub { font-size: 16px; color: var(--muted); max-width: 400px; text-align: center; line-height: 1.65; }
-    .welcome-btn { margin-top: 8px; background: var(--accent); color: var(--text-card); border: var(--border-width) solid var(--text-card); border-radius: var(--radius-pill); padding: 13px 32px; font-size: 14px; font-weight: var(--fw-bold); cursor: pointer; font-family: inherit; text-transform: uppercase; letter-spacing: .04em; transition: background .15s, transform .1s; }
-    .welcome-btn:hover { background: var(--accent-dark); transform: translateY(-1px); }
-    .welcome-steps { display: flex; gap: 24px; margin-top: 8px; flex-wrap: wrap; justify-content: center; }
-    .welcome-step { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
-    .welcome-step-num { width: 22px; height: 22px; border-radius: 50%; background: #111; border: 1.5px solid #333; font-size: 11px; font-weight: var(--fw-bold); display: flex; align-items: center; justify-content: center; color: var(--accent); }
+    #welcomeScreen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 24px; gap: 52px; overflow-y: auto; }
+    .welcome-heading { text-align: center; }
+
+    /* Both lines share identical typographic settings for visual cohesion */
+    .wh-line {
+      font-size: clamp(36px, 5.5vw, 74px);
+      font-weight: 800;
+      letter-spacing: -.03em;
+      line-height: 1.3;   /* fixed — prevents vertical shift from font metric changes */
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    /*
+     * Fixed-width inline-block container for the animated word.
+     * Width is set by JS (measureAnimatedSlot) to the widest font variant,
+     * so "Сотвори" never moves horizontally when the font changes.
+     */
+    .wh-slot {
+      display: inline-block;
+      text-align: center;
+      vertical-align: baseline;
+      overflow: visible;   /* tall ascenders/descenders show without causing reflow */
+    }
+
+    /* The animated word itself — inline-block so it can be measured via getBoundingClientRect */
+    .animated-word {
+      display: inline-block;
+      color: var(--accent);
+      vertical-align: baseline;
+    }
+
+    /* 3D volumetric button */
+    .welcome-btn-3d {
+      background: var(--accent); color: var(--text-card);
+      border: none; border-radius: var(--radius-pill);
+      padding: 16px 52px; font-size: 15px; font-weight: 800;
+      font-family: inherit; text-transform: uppercase; letter-spacing: .07em;
+      cursor: pointer;
+      box-shadow: 0 7px 0 #7a9a00, 0 10px 24px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.28);
+      transform: translateY(0);
+      transition: transform .1s ease, box-shadow .1s ease, background .1s;
+    }
+    .welcome-btn-3d:hover {
+      background: #dcff60;
+      transform: translateY(-3px);
+      box-shadow: 0 10px 0 #7a9a00, 0 14px 28px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.28);
+    }
+    .welcome-btn-3d:active {
+      transform: translateY(5px);
+      box-shadow: 0 2px 0 #7a9a00, 0 4px 10px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.1);
+    }
+    .welcome-hint { font-size: 13px; color: #444; text-align: center; }
 
     /* ===== CREATE VIEW ===== */
     #createView { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: flex-start; padding: 40px 24px; overflow-y: auto; }
@@ -462,6 +513,77 @@
     .status-error         { background: rgba(255,68,68,.1); color: #ff8888; border: 1px solid rgba(255,68,68,.2); }
 
     #projectScenario { display: none; }
+
+    /* ===== MOBILE SIDEBAR OVERLAY ===== */
+    .sidebar-overlay {
+      display: none; position: fixed; inset: 0;
+      z-index: 150; background: rgba(0,0,0,.55);
+      backdrop-filter: blur(2px);
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      /* Sidebar becomes a fixed drawer */
+      .sidebar {
+        position: fixed !important;
+        top: 0; left: 0; bottom: 0;
+        z-index: 200;
+        width: 260px !important;
+        transform: translateX(0);
+        transition: transform .3s cubic-bezier(.4,0,.2,1) !important;
+        box-shadow: 4px 0 32px rgba(0,0,0,.7);
+      }
+      .sidebar.collapsed {
+        transform: translateX(-260px);
+        width: 260px !important;
+        border-right-color: var(--border) !important;
+      }
+      /* Keep content visible when collapsed (drawer style) */
+      .sidebar.collapsed .sidebar-brand,
+      .sidebar.collapsed .sidebar-new-btn,
+      .sidebar.collapsed .sidebar-section-header,
+      .sidebar.collapsed .sidebar-projects,
+      .sidebar.collapsed .sidebar-footer { opacity: 1 !important; pointer-events: auto !important; }
+
+      .sidebar-open-toggle { display: flex !important; }
+
+      /* Content area fills full width */
+      .main-area { width: 100%; }
+      .top-bar { padding: 0 16px 0 56px; height: 56px; }
+      .top-bar-title { font-size: 13px; }
+      .top-bar-badge { font-size: 10px; padding: 2px 6px; }
+
+      /* Progress bar compact */
+      .pc-step { width: 22px; height: 22px; font-size: 10px; }
+      .pc-connector { width: 18px; }
+      .pc-step-label { display: none; }
+
+      /* Welcome screen */
+      .welcome-heading { padding: 0 8px; }
+      .wh-line { font-size: clamp(28px, 9vw, 52px); white-space: normal; }
+      .wh-slot { vertical-align: baseline; }
+      .welcome-btn-3d { padding: 14px 32px; font-size: 14px; }
+
+      /* Create form */
+      #createView { padding: 24px 16px; }
+      .create-form-wrap { padding: 0; }
+      .mode-radios { flex-direction: column; }
+
+      /* Timeline */
+      .timeline-scroll { padding: 24px 16px 48px; }
+      .frame-card { width: 220px; }
+
+      /* Action bar */
+      .project-actions-bar { padding: 8px 16px; }
+
+      /* Gear popup */
+      .gear-popup { width: calc(100vw - 32px); max-width: 280px; }
+    }
+
+    @media (max-width: 480px) {
+      .wh-line { font-size: clamp(24px, 8vw, 36px); }
+      .welcome-btn-3d { width: 100%; max-width: 280px; text-align: center; }
+    }
   </style>
 </head>
 <body>
@@ -626,6 +748,7 @@
   <button class="sidebar-open-toggle" id="sidebarOpenToggle" onclick="toggleSidebar()" title="Открыть меню">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
   </button>
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
   <!-- Main area -->
   <div class="main-area">
@@ -656,14 +779,12 @@
     <div class="main-canvas">
       <!-- Welcome -->
       <div id="welcomeScreen">
-        <div class="welcome-logo">Animat<span>AI</span></div>
-        <div class="welcome-sub">Превратите сценарий в мультфильм за несколько кликов.</div>
-        <button class="welcome-btn" onclick="showCreateView()">Создать мультфильм</button>
-        <div class="welcome-steps">
-          <div class="welcome-step"><div class="welcome-step-num">1</div><span>Напишите сценарий</span></div>
-          <div class="welcome-step"><div class="welcome-step-num">2</div><span>Генерируйте кадры</span></div>
-          <div class="welcome-step"><div class="welcome-step-num">3</div><span>Скачайте видео</span></div>
+        <div class="welcome-heading">
+          <div class="wh-line">Сотвори&nbsp;<span class="wh-slot" id="animatedSlot"><span id="animatedWord" class="animated-word">свой</span></span></div>
+          <div class="wh-line">мультфильм</div>
         </div>
+        <button class="welcome-btn-3d" onclick="showCreateView()">Создать мультфильм</button>
+        <div class="welcome-hint">Просто опиши историю — ИИ сделает остальное</div>
       </div>
 
       <!-- Create form -->
@@ -865,7 +986,7 @@ async function login() {
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Ошибка входа');
     setTokens(data.accessToken, data.refreshToken);
-    showView('app'); loadProjects();
+    showView('app'); showWelcome(); loadProjects();
   } catch (e) { errEl.textContent = e.message; }
   finally { btn.disabled = false; btn.textContent = 'Войти'; }
 }
@@ -890,7 +1011,7 @@ async function register() {
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Ошибка регистрации');
     setTokens(data.accessToken, data.refreshToken);
-    showView('app'); loadProjects();
+    showView('app'); showWelcome(); loadProjects();
   } catch (e) { errEl.textContent = e.message; }
   finally { btn.disabled = false; btn.textContent = 'Создать аккаунт →'; }
 }
@@ -961,8 +1082,101 @@ async function api(url, options = {}) {
 // ===== Sidebar =====
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
-  const isCollapsed = sidebar.classList.toggle('collapsed');
+  sidebar.classList.toggle('collapsed');
+  const isCollapsed = sidebar.classList.contains('collapsed');
   localStorage.setItem('sidebarOpen', isCollapsed ? 'false' : 'true');
+  updateSidebarOverlay();
+}
+
+function updateSidebarOverlay() {
+  const overlay = document.getElementById('sidebarOverlay');
+  if (!overlay) return;
+  const isMobile = window.innerWidth <= 768;
+  const isCollapsed = document.getElementById('sidebar').classList.contains('collapsed');
+  overlay.style.display = (isMobile && !isCollapsed) ? 'block' : 'none';
+}
+
+// ===== Font animation =====
+const FONT_VARIANTS = [
+  { fontFamily: "'Inter', sans-serif",         fontWeight: '800', fontStyle: 'normal', letterSpacing: '-.04em', textTransform: '' },
+  { fontFamily: "'Playfair Display', serif",   fontWeight: '700', fontStyle: 'italic', letterSpacing: '-.01em', textTransform: '' },
+  { fontFamily: "'Oswald', sans-serif",        fontWeight: '700', fontStyle: 'normal', letterSpacing: '.08em',  textTransform: 'uppercase' },
+  { fontFamily: "'Unbounded', sans-serif",     fontWeight: '900', fontStyle: 'normal', letterSpacing: '-.02em', textTransform: '' },
+  { fontFamily: "'Russo One', sans-serif",     fontWeight: '400', fontStyle: 'normal', letterSpacing: '.02em',  textTransform: '' },
+  { fontFamily: "'Marck Script', cursive",     fontWeight: '400', fontStyle: 'normal', letterSpacing: '-.01em', textTransform: '' },
+  { fontFamily: "'Comfortaa', cursive",        fontWeight: '700', fontStyle: 'normal', letterSpacing: '.01em',  textTransform: '' },
+];
+let fontIdx = 0;
+let fontTimer = null;
+
+/*
+ * Measures the rendered width of #animatedWord in every font variant
+ * and pins #animatedSlot to that max width so the surrounding words
+ * ("Сотвори") never shift horizontally when the font cycles.
+ * Must be called after document.fonts.ready so real font metrics are used.
+ */
+async function measureAnimatedSlot() {
+  const el   = document.getElementById('animatedWord');
+  const slot = document.getElementById('animatedSlot');
+  if (!el || !slot) return;
+
+  // Save current inline styles to restore afterwards
+  const saved = {
+    fontFamily:    el.style.fontFamily,
+    fontWeight:    el.style.fontWeight,
+    fontStyle:     el.style.fontStyle,
+    letterSpacing: el.style.letterSpacing,
+    textTransform: el.style.textTransform,
+  };
+
+  // Temporarily make slot width auto so measurement is unconstrained
+  slot.style.width = '';
+  let maxWidth = 0;
+
+  for (const v of FONT_VARIANTS) {
+    el.style.fontFamily    = v.fontFamily;
+    el.style.fontWeight    = v.fontWeight;
+    el.style.fontStyle     = v.fontStyle;
+    el.style.letterSpacing = v.letterSpacing;
+    el.style.textTransform = v.textTransform;
+    void el.offsetWidth; // force reflow so getBoundingClientRect is accurate
+    maxWidth = Math.max(maxWidth, el.getBoundingClientRect().width);
+  }
+
+  // Restore original state
+  el.style.fontFamily    = saved.fontFamily;
+  el.style.fontWeight    = saved.fontWeight;
+  el.style.fontStyle     = saved.fontStyle;
+  el.style.letterSpacing = saved.letterSpacing;
+  el.style.textTransform = saved.textTransform;
+
+  // Lock slot to max width + small breathing room
+  slot.style.width = (Math.ceil(maxWidth) + 8) + 'px';
+}
+
+async function initFontAnimation() {
+  if (fontTimer) return; // already running
+  await document.fonts.ready;  // ensure real font metrics, not fallback
+  await measureAnimatedSlot();
+  startFontAnimation();
+}
+
+function startFontAnimation() {
+  const el = document.getElementById('animatedWord');
+  if (!el || fontTimer) return;
+  fontTimer = setInterval(() => {
+    fontIdx = (fontIdx + 1) % FONT_VARIANTS.length;
+    const v = FONT_VARIANTS[fontIdx];
+    el.style.fontFamily    = v.fontFamily;
+    el.style.fontWeight    = v.fontWeight;
+    el.style.fontStyle     = v.fontStyle;
+    el.style.letterSpacing = v.letterSpacing;
+    el.style.textTransform = v.textTransform;
+  }, 2400);
+}
+
+function stopFontAnimation() {
+  if (fontTimer) { clearInterval(fontTimer); fontTimer = null; }
 }
 
 function updateApiKeysBtnState() {
@@ -1033,8 +1247,10 @@ function showWelcome() {
   document.getElementById('projectView').style.display = 'none';
   document.getElementById('createView').style.display = 'none';
   document.getElementById('projectActionsBar').classList.remove('visible');
+  document.querySelector('.main-canvas').classList.remove('dot-grid');
   updateTopBar(null);
   stopPolling();
+  initFontAnimation(); // async: waits for fonts, measures slot width, then starts
   currentProjectId = null; currentProject = null;
   document.querySelectorAll('.project-item').forEach(el => el.classList.remove('active'));
 }
@@ -1045,7 +1261,9 @@ function showCreateView() {
   document.getElementById('projectView').style.display = 'none';
   document.getElementById('createView').style.display = 'flex';
   document.getElementById('projectActionsBar').classList.remove('visible');
+  document.querySelector('.main-canvas').classList.remove('dot-grid');
   document.getElementById('createError').textContent = '';
+  stopFontAnimation();
   updateTopBar(null);
   document.getElementById('topBarTitle').textContent = 'Новый мультфильм';
   setTimeout(() => document.getElementById('scenarioInput').focus(), 50);
@@ -1214,6 +1432,8 @@ function showProject(project) {
   document.getElementById('createView').style.display = 'none';
   document.getElementById('projectView').style.display = 'flex';
   document.getElementById('projectActionsBar').classList.add('visible');
+  document.querySelector('.main-canvas').classList.add('dot-grid');
+  stopFontAnimation();
   document.getElementById('projectScenario').textContent = project.scenario;
 
   updateTopBar(project);
@@ -1652,8 +1872,10 @@ if (!accessToken) {
   showView('landing');
 } else {
   showView('app');
+  showWelcome();
   loadProjects();
 }
+window.addEventListener('resize', updateSidebarOverlay);
 </script>
 </body>
 </html>
