@@ -1,20 +1,17 @@
 """
-Lite mode video generation — MiniMax via fal.ai queue (port of videoGen.js submitVideoMinimax).
+Lite mode video generation — MiniMax via fal.ai queue.
 Processes all scenes independently (no chaining).
 """
 
-import asyncio
-import io
 import fal_client
 import httpx
 
-FAL_MODEL     = "fal-ai/minimax-video/image-to-video"
-POLL_INTERVAL = 10
-MAX_WAIT      = 20 * 60  # 20 minutes
+
+FAL_MODEL = "fal-ai/minimax-video/image-to-video"
 
 
 async def generate_clip(scene: dict, api_keys: dict) -> bytes:
-    """Submit + poll one scene. Returns raw video bytes."""
+    """Submit + wait for one scene. Returns raw video bytes."""
     fal_key      = api_keys.get("fal", "")
     image_path   = scene["image_path"]
     video_prompt = scene.get("video_prompt", "")
@@ -22,12 +19,12 @@ async def generate_clip(scene: dict, api_keys: dict) -> bytes:
 
     _set_fal_key(fal_key)
     try:
-        # Upload start image
         image_bytes = await _fetch_asset(image_path)
         image_url   = await fal_client.upload_async(
-            io.BytesIO(image_bytes), content_type="image/png"
+            image_bytes, content_type="image/png"
         )
 
+        print(f"[video/lite] Submitting to fal.ai: {FAL_MODEL}")
         handler = await fal_client.submit_async(
             FAL_MODEL,
             arguments={
@@ -37,21 +34,10 @@ async def generate_clip(scene: dict, api_keys: dict) -> bytes:
             },
         )
 
-        start = asyncio.get_event_loop().time()
-        while True:
-            elapsed = asyncio.get_event_loop().time() - start
-            if elapsed > MAX_WAIT:
-                raise TimeoutError(f"Video generation timed out after {MAX_WAIT}s")
-
-            status = await handler.status()
-            if status == "COMPLETED":
-                break
-            if status == "FAILED":
-                raise RuntimeError("fal.ai video generation failed")
-            await asyncio.sleep(POLL_INTERVAL)
-
+        # handler.get() blocks until completed or raises on failure
         result    = await handler.get()
         video_url = result["video"]["url"]
+        print(f"[video/lite] Done, downloading from {video_url[:80]}...")
 
         async with httpx.AsyncClient(timeout=120) as client:
             resp = await client.get(video_url)

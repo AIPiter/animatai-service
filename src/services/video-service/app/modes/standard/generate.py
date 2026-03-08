@@ -1,14 +1,10 @@
 """Standard mode video generation — WAN 2.1 FLF2V via fal.ai (first+last frame)."""
 
-import asyncio
-import io
 import os
 import fal_client
 import httpx
 
-FAL_MODEL     = "fal-ai/wan-flf2v"
-POLL_INTERVAL = 10
-MAX_WAIT      = 20 * 60
+FAL_MODEL = "fal-ai/wan-flf2v"
 
 
 async def generate_clip(
@@ -24,7 +20,7 @@ async def generate_clip(
     _set_fal_key(fal_key)
     try:
         start_url = await fal_client.upload_async(
-            io.BytesIO(start_image_bytes), content_type="image/png"
+            start_image_bytes, content_type="image/png"
         )
         args: dict = {
             "image_url": start_url,
@@ -33,25 +29,15 @@ async def generate_clip(
         }
         if end_image_bytes:
             end_url = await fal_client.upload_async(
-                io.BytesIO(end_image_bytes), content_type="image/png"
+                end_image_bytes, content_type="image/png"
             )
             args["tail_image_url"] = end_url
 
+        print(f"[video/standard] Submitting to fal.ai: {FAL_MODEL}")
         handler = await fal_client.submit_async(FAL_MODEL, arguments=args)
-
-        start = asyncio.get_event_loop().time()
-        while True:
-            if asyncio.get_event_loop().time() - start > MAX_WAIT:
-                raise TimeoutError("WAN video generation timed out")
-            status = await handler.status()
-            if status == "COMPLETED":
-                break
-            if status == "FAILED":
-                raise RuntimeError("WAN video generation failed")
-            await asyncio.sleep(POLL_INTERVAL)
-
         result    = await handler.get()
         video_url = result["video"]["url"]
+        print(f"[video/standard] Done, downloading from {video_url[:80]}...")
 
         async with httpx.AsyncClient(timeout=120) as client:
             resp = await client.get(video_url)

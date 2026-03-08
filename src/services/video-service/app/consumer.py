@@ -67,6 +67,7 @@ async def _generate_lite(project_id, scenes, api_keys, pool):
                 )
             await publish(project_id, "video_done", {"scene_id": scene_id, "path": path})
         except Exception as e:
+            print(f"[video] ERROR scene={scene_id}: {e}")
             async with pool.acquire() as conn:
                 await conn.execute(
                     "UPDATE scenes SET video_status = 'error', video_error = $1 WHERE id = $2",
@@ -115,6 +116,7 @@ async def _generate_deluxe(project_id, scenes, api_keys, pool, voice_ids):
             await publish(project_id, "video_done", {"scene_id": scene_id, "path": clip_path})
 
         except Exception as e:
+            print(f"[video] ERROR scene={scene_id}: {e}")
             async with pool.acquire() as conn:
                 await conn.execute(
                     "UPDATE scenes SET video_status = 'error', video_error = $1 WHERE id = $2",
@@ -151,6 +153,7 @@ async def _generate_standard(project_id, scenes, api_keys, pool):
                 )
             await publish(project_id, "video_done", {"scene_id": scene_id, "path": path})
         except Exception as e:
+            print(f"[video] ERROR scene={scene_id}: {e}")
             async with pool.acquire() as conn:
                 await conn.execute(
                     "UPDATE scenes SET video_status = 'error', video_error = $1 WHERE id = $2",

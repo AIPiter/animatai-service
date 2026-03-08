@@ -184,6 +184,7 @@ async def single_scene_video(project_id: str, scene_id: str, request: Request):
     if not scene.get("image_path"):
         raise HTTPException(400, "Scene has no image — generate image first")
 
+    await db.update_scene_video_status("queued", scene_id)
     await publish_job("video", {
         "job_id":     str(uuid.uuid4()),
         "project_id": project_id,

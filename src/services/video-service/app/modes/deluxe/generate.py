@@ -1,20 +1,16 @@
 """
 Deluxe mode video generation — Kling v2.6 pro via fal.ai.
-Scenes are chained: last frame of clip N → start image of clip N+1.
+Scenes are chained: last frame of clip N -> start image of clip N+1.
 Supports generate_audio + voice_ids.
 """
 
-import asyncio
-import io
 import subprocess
 import tempfile
 import os
 import fal_client
 import httpx
 
-FAL_MODEL     = "fal-ai/kling-video/v2.6/pro/image-to-video"
-POLL_INTERVAL = 10
-MAX_WAIT      = 20 * 60
+FAL_MODEL = "fal-ai/kling-video/v2.6/pro/image-to-video"
 
 
 async def generate_clip(
@@ -34,7 +30,7 @@ async def generate_clip(
     _set_fal_key(fal_key)
     try:
         start_url = await fal_client.upload_async(
-            io.BytesIO(start_image_bytes), content_type="image/png"
+            start_image_bytes, content_type="image/png"
         )
 
         args: dict = {
@@ -49,22 +45,11 @@ async def generate_clip(
             if looks_custom:
                 args["voice_ids"] = voice_ids
 
+        print(f"[video/deluxe] Submitting to fal.ai: {FAL_MODEL}")
         handler = await fal_client.submit_async(FAL_MODEL, arguments=args)
-
-        start = asyncio.get_event_loop().time()
-        while True:
-            if asyncio.get_event_loop().time() - start > MAX_WAIT:
-                raise TimeoutError("Kling video generation timed out")
-
-            status = await handler.status()
-            if status == "COMPLETED":
-                break
-            if status == "FAILED":
-                raise RuntimeError("Kling video generation failed")
-            await asyncio.sleep(POLL_INTERVAL)
-
         result    = await handler.get()
         video_url = result["video"]["url"]
+        print(f"[video/deluxe] Done, downloading from {video_url[:80]}...")
 
         async with httpx.AsyncClient(timeout=120) as client:
             resp = await client.get(video_url)

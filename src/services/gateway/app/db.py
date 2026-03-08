@@ -200,6 +200,11 @@ async def update_scene_status(status: str, scene_id: str):
     await pool.execute("UPDATE scenes SET status = $1 WHERE id = $2", status, scene_id)
 
 
+async def update_scene_video_status(status: str, scene_id: str):
+    pool = await get_pool()
+    await pool.execute("UPDATE scenes SET video_status = $1 WHERE id = $2", status, scene_id)
+
+
 async def update_scene_prompt(prompt: str, scene_id: str):
     pool = await get_pool()
     await pool.execute("UPDATE scenes SET image_prompt = $1 WHERE id = $2", prompt, scene_id)
