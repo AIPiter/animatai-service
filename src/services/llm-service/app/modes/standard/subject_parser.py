@@ -111,18 +111,56 @@ Return ONLY this JSON:
                     "Please describe the main subject more specifically."
                 )
 
+            # Build image_prompt and video_prompt for each scene
+            enriched_scenes = _build_scene_prompts(parsed)
+
             return {
-                "subject":    parsed["subject"],
-                "style":      parsed["style"],
-                "scenes":     parsed["scenes"],
-                "frame_count": len(parsed["scenes"]) + 1,
-                "clip_count":  len(parsed["scenes"]),
+                "subject":                parsed["subject"],
+                "style":                  parsed["style"],
+                "character_description":  json.dumps({
+                    "subject": parsed["subject"],
+                    "style":   parsed["style"],
+                }),
+                "scenes":     enriched_scenes,
+                "frame_count": len(enriched_scenes) + 1,
+                "clip_count":  len(enriched_scenes),
             }
 
         except Exception as e:
             if "SUBJECT_UNCLEAR" in str(e) or attempt == 2:
                 raise
             print(f"[llm/standard] Attempt {attempt}/2 failed: {e}. Retrying…")
+
+
+def _build_scene_prompts(parsed: dict) -> list[dict]:
+    """Enrich each scene with image_prompt, video_prompt, subtitle_text."""
+    subject = parsed["subject"]
+    style   = parsed["style"]
+    features = ", ".join(subject.get("keyFeatures", []))
+    render   = style.get("renderingStyle", "")
+
+    scenes = []
+    for s in parsed["scenes"]:
+        image_prompt = (
+            f"{subject['description']}, {features}, "
+            f"{s.get('action', '')}, {s.get('backgroundHint', '')}, "
+            f"{s.get('cameraAngle', 'front')} angle, "
+            f"{render}, high detail, sharp focus."
+        )
+        video_prompt = (
+            f"{subject['description']} {s.get('action', '')}. "
+            f"{s.get('description', '')}. "
+            f"Camera: {s.get('cameraAngle', 'front')}."
+        )
+        scenes.append({
+            **s,
+            "image_prompt":  image_prompt,
+            "video_prompt":  video_prompt,
+            "subtitle_text": s.get("description", ""),
+            "scene_type":    "main",
+        })
+
+    return scenes
 
 
 def _normalise(data: dict, expected: int):
