@@ -1,30 +1,152 @@
 services:
+  # ── Infrastructure ──────────────────────────────────────────────────────────
+
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: animatai
-      POSTGRES_USER: animatai
+      POSTGRES_DB:       ${POSTGRES_DB:-animatai}
+      POSTGRES_USER:     ${POSTGRES_USER:-animatai}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-animatai}
     volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./src/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - postgres_data:/var/lib/postgresql/data
+      - ./src/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U animatai -d animatai"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-animatai} -d ${POSTGRES_DB:-animatai}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
-  app:
-    build: .
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./storage:/app/storage
-    env_file: .env
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
     restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-animatai}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-animatai}
+    ports:
+      - "15672:15672"   # management UI — dev only
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER:     ${MINIO_USER:-animatai}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASS:-animatai_secret}
+    ports:
+      - "9001:9001"   # console UI — dev only
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  # ── Application services ────────────────────────────────────────────────────
+
+  gateway:
+    build:
+      context: src/services/gateway
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:8000"
+    environment:
+      DATABASE_URL:   postgresql://${POSTGRES_USER:-animatai}:${POSTGRES_PASSWORD:-animatai}@postgres:5432/${POSTGRES_DB:-animatai}
+      RABBITMQ_URL:   amqp://${RABBITMQ_USER:-animatai}:${RABBITMQ_PASS:-animatai}@rabbitmq:5672/
+      REDIS_URL:      redis://redis:6379
+      JWT_SECRET:     ${JWT_SECRET}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      FROM_EMAIL:     ${FROM_EMAIL:-noreply@animatai.app}
     depends_on:
-      postgres:
-        condition: service_healthy
+      postgres:  { condition: service_healthy }
+      rabbitmq:  { condition: service_healthy }
+      redis:     { condition: service_healthy }
+
+  llm-service:
+    build:
+      context: src/services/llm-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-animatai}:${RABBITMQ_PASS:-animatai}@rabbitmq:5672/
+      REDIS_URL:    redis://redis:6379
+      DATABASE_URL: postgresql://${POSTGRES_USER:-animatai}:${POSTGRES_PASSWORD:-animatai}@postgres:5432/${POSTGRES_DB:-animatai}
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+      postgres: { condition: service_healthy }
+
+  image-service:
+    build:
+      context: src/services/image-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      RABBITMQ_URL:  amqp://${RABBITMQ_USER:-animatai}:${RABBITMQ_PASS:-animatai}@rabbitmq:5672/
+      REDIS_URL:     redis://redis:6379
+      DATABASE_URL:  postgresql://${POSTGRES_USER:-animatai}:${POSTGRES_PASSWORD:-animatai}@postgres:5432/${POSTGRES_DB:-animatai}
+      MINIO_URL:     minio:9000
+      MINIO_USER:    ${MINIO_USER:-animatai}
+      MINIO_PASS:    ${MINIO_PASS:-animatai_secret}
+      MINIO_BUCKET:  ${MINIO_BUCKET:-animatai}
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+      minio:    { condition: service_healthy }
+      postgres: { condition: service_healthy }
+
+  video-service:
+    build:
+      context: src/services/video-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      RABBITMQ_URL:  amqp://${RABBITMQ_USER:-animatai}:${RABBITMQ_PASS:-animatai}@rabbitmq:5672/
+      REDIS_URL:     redis://redis:6379
+      DATABASE_URL:  postgresql://${POSTGRES_USER:-animatai}:${POSTGRES_PASSWORD:-animatai}@postgres:5432/${POSTGRES_DB:-animatai}
+      MINIO_URL:     minio:9000
+      MINIO_USER:    ${MINIO_USER:-animatai}
+      MINIO_PASS:    ${MINIO_PASS:-animatai_secret}
+      MINIO_BUCKET:  ${MINIO_BUCKET:-animatai}
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+      minio:    { condition: service_healthy }
+      postgres: { condition: service_healthy }
+
+  frontend:
+    build:
+      context: src/frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - gateway
 
 volumes:
-  pgdata:
+  postgres_data:
+  rabbitmq_data:
+  redis_data:
+  minio_data:

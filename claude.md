@@ -5,148 +5,166 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev    # Start with --watch (auto-restart on changes)
-npm start      # Production start
+docker compose up --build -d           # Build and start all services
+docker compose down                    # Stop all services
+docker compose logs <service> -f       # Follow logs for a service
+docker compose up --build -d <service> # Rebuild a single service
 ```
 
 No test runner or linter is configured.
 
+## Architecture
+
+**Python FastAPI microservices** with a React/TypeScript frontend.
+
+```
+src/
+  services/
+    gateway/        # FastAPI — auth, project API, SSE, publishes jobs to RabbitMQ
+    llm-service/    # Consumes jobs.llm — splits scenario into scenes
+    image-service/  # Consumes jobs.image — generates images, uploads to MinIO
+    video-service/  # Consumes jobs.video — generates clips, stitches final video (ffmpeg)
+  frontend/         # React 18 + Vite + TypeScript — served via nginx
+  schema.sql        # PostgreSQL schema (loaded by postgres on first init)
+```
+
+Each service uses **`uv`** as the Python package manager (`pyproject.toml` per service).
+Docker base image: `ghcr.io/astral-sh/uv:python3.12-bookworm-slim`
+
+## Infrastructure (docker-compose.yml)
+
+| Service   | Host port | Purpose                        |
+|-----------|-----------|--------------------------------|
+| postgres  | —         | PostgreSQL 16                  |
+| rabbitmq  | 15672     | RabbitMQ (management UI)       |
+| redis     | —         | Pub/sub for SSE status updates |
+| minio     | 9001      | Object storage (MinIO console) |
+| gateway   | 3000      | API gateway (maps → 8000)      |
+| frontend  | 5173      | nginx serving built React SPA  |
+
+All app services `depend_on` infra services with `condition: service_healthy`.
+
 ## Environment Variables
 
 ```
-DATABASE_URL=         # PostgreSQL connection string
-JWT_SECRET=           # Secret for JWT signing
-OPENROUTER_API_KEY=   # Used for both LLM (scenario splitting) and image generation
-FAL_KEY=              # fal.ai for FLUX image gen (deluxe) and video gen
+# Required
+JWT_SECRET=           # python -c "import secrets; print(secrets.token_hex(32))"
+
+# Defaults work out of the box with docker-compose
+DATABASE_URL=postgresql://animatai:animatai@postgres:5432/animatai
+RABBITMQ_URL=amqp://animatai:animatai@rabbitmq:5672/
+REDIS_URL=redis://redis:6379
+MINIO_URL=minio:9000
+MINIO_USER=animatai
+MINIO_PASS=animatai_secret
+MINIO_BUCKET=animatai
+
+# Optional
+RESEND_API_KEY=       # email sending — not required, registration works without it
+FROM_EMAIL=noreply@animatai.app
 PORT=3000
-LLM_MODEL=            # optional, defaults to google/gemini-2.5-pro
-IMAGE_MODEL=          # optional, defaults to openai/gpt-image-1
-VIDEO_MODEL=          # optional, defaults to fal-ai/minimax-video/image-to-video
-RESEND_API_KEY=       # optional, for email verification (resend.com)
 ```
 
-## Architecture
+API keys (FAL_KEY, OpenRouter key) are **never stored server-side** — passed per-request from the frontend via `X-Fal-Key` / `X-Openrouter-Key` headers and included in RabbitMQ job messages as `api_keys: {fal, openrouter}`.
 
-**ESM modules** throughout (`"type": "module"` in package.json). Use `import`/`export` syntax.
+## Auth
 
-All Express routes are defined directly in `src/server.js` (not split into route files). All DB queries are prepared statements exported from `src/db.js`.
-
-**Database:** PostgreSQL via `pg` (Pool with `DATABASE_URL`). Schema is maintained via inline `try/catch` migrations in `runMigrations()` in `src/db.js` (idempotent `ALTER TABLE` / `CREATE TABLE IF NOT EXISTS` calls).
-
-**File storage:** Generated assets are saved to `storage/` at project root:
-- `storage/images/` — generated frames and extracted last-frames
-- `storage/clips/` — generated video clips
-- `storage/output/` — final stitched videos + ASS subtitle files
-
-Paths stored in DB are relative web paths like `/storage/images/filename.png`.
-
-**Auth:** JWT access tokens (15min) + refresh tokens (30 days). Middleware: `requireAuth` from `src/auth.js`. Requires `JWT_SECRET` env var. All project/scene routes require auth.
+- JWT access tokens (15 min) via `python-jose` HS256
+- Refresh tokens (30 days) stored as SHA-256 hash in `refresh_tokens` table, set as `HttpOnly` cookie
+- Validation only in Gateway middleware (`src/services/gateway/app/main.py`)
+- Unprotected paths: `/auth/register`, `/auth/login`, `/auth/refresh`, `/health`
+- SSE connections pass token as `?token=` query param (EventSource can't send headers)
+- **Email verification is disabled** — `/auth/register` directly creates user and returns tokens
 
 ## Project Modes
 
-Two active modes (pro/freetrial projects are deleted on startup):
+| Mode       | Scenes   | Image Gen                        | Video Gen                                   |
+|------------|----------|----------------------------------|---------------------------------------------|
+| `lite`     | 1–12     | OpenRouter (gpt-image-1)         | MiniMax via fal.ai (20-min timeout)         |
+| `deluxe`   | 3        | FLUX-2-pro via fal.ai            | Kling v2.6 pro + audio via fal.ai           |
+| `standard` | variable | FLUX-kontext/pro via OpenRouter  | WAN FLF2V (`fal-ai/wan-flf2v`) via fal.ai  |
 
-| Mode | Scenes | Duration | Image Gen | Video Gen |
-|------|--------|----------|-----------|-----------|
-| `standard` | 1–12 (user-chosen) | scene_count × 5s | OpenRouter (gpt-image-1) | MiniMax via fal.ai |
-| `deluxe` | 3 (chained last-frame) | ~15s | FLUX-2-pro via fal.ai | Kling v2.6 pro + audio |
+**Deluxe mode** chains scenes: only scene 1 gets an image; after each clip is generated the last frame is extracted via ffmpeg and used as the starting image for the next scene.
 
-**Deluxe mode** uses a chained pipeline: only scene 1 generates an image. After each clip is generated, the last frame is extracted via FFmpeg and used as the starting image for the next scene.
+**Standard mode** uses subject-parser (Claude via OpenRouter) to extract structured shot data before image/video generation.
 
-## Startup Sequence
+## Messaging Flow
 
-On startup (in order):
-1. `runMigrations()` — run DB migrations
-2. `deleteObsoleteProjects()` — delete all `pro` and `freetrial` mode projects + their files
-3. `resetOrphanedGeneratingScenes()` — reset stuck `generating`/`queued` scenes (no fal request ID) back to `pending`
-4. `recoverVideoQueue()` — re-enqueue scenes that have a `fal_video_request_id` (already submitted but not polled)
+1. Gateway publishes job → `jobs.llm` (RabbitMQ, durable, persistent)
+2. `llm-service` consumes, splits scenario, inserts scenes to DB, publishes status → Redis `project:{id}:events`
+3. Gateway's `status_listener` picks up Redis pub/sub and forwards to SSE clients (`/api/events/{project_id}`)
+4. Frontend `useProjectEvents` hook invalidates React Query cache on each SSE event
+5. Image/video generation follows same publish → consume → Redis notify pattern via `jobs.image` / `jobs.video`
 
-## Video Queue
+## File Storage (MinIO)
 
-Global in-memory queue with max 2 concurrent jobs. Scenes pass through:
+- Images: `images/<uuid>.png` → web path `/storage/images/<uuid>.png`
+- Clips: `clips/<uuid>.mp4` → web path `/storage/clips/<uuid>.mp4`
+- Output: `output/<uuid>.mp4` → web path `/storage/output/<uuid>.mp4`
+- DB stores relative web paths like `/storage/images/filename.png`
+- Bucket has public-read policy (set automatically on first use in `storage.py`)
+
+## Scene Status Flow
+
 ```
-pending → queued → generating → done | error
+image status:  pending → done | error
+video_status:  pending → queued → generating → done | error
+project status: created → scenes_ready → generating → videos_ready → rendering → rendered | error
 ```
-
-- `enqueueVideo(sceneId, projectId, falKey)` — sets status to `queued` and adds to queue
-- `drainQueue()` — starts jobs up to `MAX_CONCURRENT = 2`
-- On server restart, scenes with a saved `fal_video_request_id` resume polling (recovery)
 
 ## Key API Endpoints
 
 ### Auth
 ```
-POST   /api/auth/register     — register (email, username, password)
-POST   /api/auth/login        — login → { accessToken, refreshToken }
-POST   /api/auth/refresh      — rotate refresh token → { accessToken, refreshToken }
-POST   /api/auth/logout       — invalidate refresh token
-GET    /api/auth/me           — current user info (requireAuth)
+POST  /auth/register   — register → { access_token } + refresh_token cookie
+POST  /auth/login      — login → { access_token } + refresh_token cookie
+POST  /auth/refresh    — rotate refresh token
+POST  /auth/logout     — invalidate refresh token
+GET   /auth/me         — current user info
 ```
 
 ### Projects
 ```
-GET    /api/projects                                        — list user's projects
-POST   /api/projects                                        — create project + split scenario (LLM)
-GET    /api/projects/:id                                    — get project with scenes
-PATCH  /api/projects/:id                                    — update project name
-DELETE /api/projects/:id                                    — delete project + all files
+GET    /api/projects          — list user's projects
+POST   /api/projects          — create project + enqueue LLM scene split
+GET    /api/projects/:id      — get project with scenes
+PATCH  /api/projects/:id      — update project name
+DELETE /api/projects/:id      — delete project + files
 ```
 
-### Images
+### Generation
 ```
-POST   /api/projects/:id/generate                           — generate images for all scenes
-POST   /api/projects/:id/scenes/:sceneId/generate-image     — generate/regenerate image for one scene
-POST   /api/projects/:id/scenes/:sceneId/regenerate         — regenerate single scene image (alias)
-```
-
-### Scenes
-```
-PATCH  /api/projects/:id/scenes/:sceneId                    — update video_prompt or image_prompt
-PATCH  /api/projects/:id/scenes/:sceneId/clip-duration      — set clip duration (deluxe: 5 or 10; standard: 6 only)
-GET    /api/projects/:id/scenes                             — list scenes for project
+POST  /api/projects/:id/generate   — enqueue image gen for all scenes
+POST  /api/projects/:id/video      — enqueue video gen for all scenes
+POST  /api/projects/:id/render     — stitch clips + burn subtitles
+GET   /api/projects/:id/download   — download final .mp4
 ```
 
-### Video Generation
+### SSE
 ```
-POST   /api/projects/:id/video                              — queue video for all scenes with images
-POST   /api/projects/:id/scenes/:sceneId/video              — queue video for a single scene
-```
-
-### History
-```
-GET    /api/projects/:id/scenes/:sceneId/history                        — get image/video history
-POST   /api/projects/:id/scenes/:sceneId/history/:historyId/restore     — restore a history item
+GET   /api/events/:id?token=<jwt>  — SSE stream for project status updates
 ```
 
-### Render & Download
-```
-POST   /api/projects/:id/render     — stitch clips + burn subtitles (FFmpeg)
-GET    /api/projects/:id/download   — download final .mp4
-```
+## Frontend (src/frontend/)
 
-## Scene Status Flow
-
-```
-image status:  pending → done
-video_status:  pending → queued → generating → done | error
-project status: created → scenes_ready → generating → done → videos_ready → rendering → rendered
-```
-
-## Scene History
-
-Each time an image or video is regenerated, the old file is saved to `scene_history`. Max 2 history items per type per scene (older ones are deleted). History can be restored via the restore endpoint, which swaps the current asset with the historical one.
+- React 18 + Vite + TypeScript (strict, `"moduleResolution": "bundler"`)
+- TanStack Query v5 — server state, invalidated by SSE events
+- Zustand v5 + persist — client state (auth, API keys stored locally, sidebar)
+- Framer Motion — page/button animations
+- nginx serves built SPA, proxies `/api`, `/auth`, `/health` to gateway with SSE buffering disabled
 
 ## Subtitle Format
 
-`subtitle_text` in DB uses `|` as a phrase separator. During render, each scene's text is split by `|` and timed evenly within the clip duration. Subtitles are rendered as TikTok-style ASS (Arial Bold, white with black outline, bottom-center, 200ms fade).
+`subtitle_text` in DB uses `|` as phrase separator. During render each phrase is timed evenly within the clip duration. Subtitles are TikTok-style ASS (Arial Bold, white + black outline, bottom-center, 200ms fade).
 
 ## External APIs
 
-- **LLM + standard image gen:** OpenRouter (`https://openrouter.ai/api/v1/chat/completions`) — supports both chat and image generation models via the same endpoint
-- **FLUX images:** `@fal-ai/client` queue API with polling (5-min timeout)
-- **Video (MiniMax):** `fal-ai/minimax-video/image-to-video` via fal.ai queue (20-min timeout)
-- **Video (Kling):** `fal-ai/kling-video/v2.6/pro/image-to-video` via fal.ai queue — supports `generate_audio` + `voice_ids` for deluxe
+- **LLM:** OpenRouter — `google/gemini-2.5-pro` default
+- **Lite images:** OpenRouter — `openai/gpt-image-1`
+- **Standard images:** OpenRouter `/images/generations` — `fal-ai/flux-kontext/pro`
+- **Deluxe images:** fal.ai queue — `fal-ai/flux-2-pro` (5-min timeout)
+- **Lite video:** fal.ai queue — `fal-ai/minimax-video/image-to-video` (20-min timeout)
+- **Deluxe video:** fal.ai queue — `fal-ai/kling-video/v2.6/pro/image-to-video` + `generate_audio=True`
+- **Standard video:** fal.ai queue — `fal-ai/wan-flf2v`
 
-All fal.ai calls use the queue pattern: `fal.queue.submit()` → poll `fal.queue.status()` → `fal.queue.result()`.
-
-API keys (`FAL_KEY`, `X-Openrouter-Key`) are passed from the frontend via request headers (`X-Fal-Key` / `X-Openrouter-Key`) for project pipeline calls.
+All fal.ai calls: `fal_client.submit_async()` → poll `status()` → `get()`.
