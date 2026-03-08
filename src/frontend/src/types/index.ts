@@ -3,7 +3,7 @@ export type ProjectStatus =
   | 'created' | 'scenes_ready' | 'generating' | 'done'
   | 'generating_videos' | 'videos_ready' | 'rendering' | 'rendered' | 'error'
 
-export type SceneStatus      = 'pending' | 'done' | 'approved' | 'error'
+export type SceneStatus      = 'pending' | 'generating' | 'done' | 'approved' | 'error'
 export type VideoStatus      = 'pending' | 'queued' | 'generating' | 'done' | 'error'
 export type StyleType        = 'anime' | 'cartoon' | 'pixar'
 

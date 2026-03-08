@@ -99,6 +99,7 @@ async def generate_images(project_id: str, request: Request):
     for scene in scenes:
         if not scene.get("image_prompt"):
             continue
+        await db.update_scene_status("generating", str(scene["id"]))
         await publish_job("image", {
             "job_id":     str(uuid.uuid4()),
             "project_id": project_id,
@@ -141,6 +142,68 @@ async def patch_scene(project_id: str, scene_id: str, body: PatchSceneRequest, r
         await db.update_scene_prompt(body.image_prompt, scene_id)
 
     return {"message": "Updated"}
+
+
+# ── Regenerate single scene image ─────────────────────────────────────────
+
+@router.post("/{project_id}/scenes/{scene_id}/regenerate")
+async def regenerate_scene_image(project_id: str, scene_id: str, request: Request):
+    project = await _owned_project(project_id, request)
+    scene = await db.get_scene(scene_id)
+    if not scene or str(scene["project_id"]) != project_id:
+        raise HTTPException(404, "Scene not found")
+    if not scene.get("image_prompt"):
+        raise HTTPException(400, "Scene has no image prompt")
+
+    await db.update_scene_status("generating", scene_id)
+    await publish_job("image", {
+        "job_id":     str(uuid.uuid4()),
+        "project_id": project_id,
+        "scene_id":   scene_id,
+        "user_id":    request.state.user_id,
+        "mode":       project["mode"],
+        "action":     "generate_image",
+        "payload": {
+            "prompt":   scene["image_prompt"],
+            "filename": f"scene-{scene_id}.png",
+            "style":    project.get("style", "anime"),
+        },
+        "api_keys": _api_keys(request),
+    })
+    return {"message": "Regenerating image"}
+
+
+# ── Single scene video ───────────────────────────────────────────────────
+
+@router.post("/{project_id}/scenes/{scene_id}/video")
+async def single_scene_video(project_id: str, scene_id: str, request: Request):
+    project = await _owned_project(project_id, request)
+    scene = await db.get_scene(scene_id)
+    if not scene or str(scene["project_id"]) != project_id:
+        raise HTTPException(404, "Scene not found")
+    if not scene.get("image_path"):
+        raise HTTPException(400, "Scene has no image — generate image first")
+
+    await publish_job("video", {
+        "job_id":     str(uuid.uuid4()),
+        "project_id": project_id,
+        "user_id":    request.state.user_id,
+        "mode":       project["mode"],
+        "action":     "generate_videos",
+        "payload": {
+            "scenes": [{
+                "id":             scene_id,
+                "scene_number":   scene["scene_number"],
+                "image_path":     scene.get("image_path"),
+                "video_prompt":   scene.get("video_prompt"),
+                "clip_duration":  scene.get("clip_duration", 5),
+                "scene_type":     scene.get("scene_type", "main"),
+                "last_frame_path": scene.get("last_frame_path"),
+            }],
+        },
+        "api_keys": _api_keys(request),
+    })
+    return {"message": "Video generation started for scene"}
 
 
 # ── Start video generation ────────────────────────────────────────────────────

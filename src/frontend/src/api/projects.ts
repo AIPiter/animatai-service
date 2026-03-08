@@ -64,3 +64,17 @@ export async function updateScene(
     body:   JSON.stringify(data),
   })
 }
+
+export async function regenerateSceneImage(projectId: string, sceneId: string): Promise<void> {
+  await api(`/api/projects/${projectId}/scenes/${sceneId}/regenerate`, {
+    method: 'POST',
+    headers: keys(),
+  })
+}
+
+export async function regenerateSceneVideo(projectId: string, sceneId: string): Promise<void> {
+  await api(`/api/projects/${projectId}/scenes/${sceneId}/video`, {
+    method: 'POST',
+    headers: keys(),
+  })
+}

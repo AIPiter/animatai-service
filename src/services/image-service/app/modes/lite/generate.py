@@ -1,10 +1,10 @@
-"""Lite mode image generation — OpenRouter / gpt-image-1 (port of imageGen.js)."""
+"""Lite mode image generation — OpenRouter chat completions with image modality."""
 
 import base64
 import httpx
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-IMAGE_MODEL = "openai/gpt-image-1"
+IMAGE_MODEL = "google/gemini-3.1-flash-image-preview"
 
 
 async def run(payload: dict, api_keys: dict) -> bytes:
@@ -23,51 +23,35 @@ async def run(payload: dict, api_keys: dict) -> bytes:
                     json={
                         "model": IMAGE_MODEL,
                         "messages": [{"role": "user", "content": prompt}],
+                        "modalities": ["image", "text"],
                     },
                 )
+                if resp.status_code >= 400:
+                    print(f"[image/lite] OpenRouter {resp.status_code}: {resp.text[:500]}")
                 resp.raise_for_status()
 
             data    = resp.json()
-            content = data["choices"][0]["message"]["content"]
+            message = data["choices"][0]["message"]
 
-            # Extract base64 image from various response shapes
-            b64 = _extract_b64(content, data)
-            if not b64:
-                raise ValueError("No image data in response")
+            # Extract base64 from images array
+            images = message.get("images", [])
+            for img in images:
+                url = img.get("image_url", {}).get("url", "")
+                if url.startswith("data:"):
+                    b64 = url.split(",", 1)[1]
+                    return base64.b64decode(b64)
 
-            return base64.b64decode(b64)
+            # Fallback: check content for inline base64
+            content = message.get("content", "")
+            if isinstance(content, str) and len(content) > 200:
+                try:
+                    return base64.b64decode(content)
+                except Exception:
+                    pass
+
+            raise ValueError("No image data in response")
 
         except Exception as e:
             if attempt == 2:
                 raise
             print(f"[image/lite] Attempt {attempt}/2 failed: {e}. Retrying…")
-
-
-def _extract_b64(content, data: dict) -> str | None:
-    # Shape 1: content_list with image_url
-    if isinstance(content, list):
-        for item in content:
-            if isinstance(item, dict) and item.get("type") == "image_url":
-                url = item.get("image_url", {}).get("url", "")
-                if url.startswith("data:"):
-                    return url.split(",", 1)[1]
-
-    # Shape 2: direct base64 string
-    if isinstance(content, str) and len(content) > 100:
-        try:
-            base64.b64decode(content)
-            return content
-        except Exception:
-            pass
-
-    # Shape 3: images array on root
-    images = data.get("images") or data.get("data") or []
-    for img in images:
-        if isinstance(img, dict):
-            b64 = img.get("b64_json") or img.get("url", "")
-            if b64.startswith("data:"):
-                return b64.split(",", 1)[1]
-            if b64:
-                return b64
-
-    return None
