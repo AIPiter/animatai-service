@@ -376,11 +376,11 @@ function WelcomeScreen({ onCreate }: { onCreate: () => void }) {
         alignItems: 'center', justifyContent: 'center', gap: 24, padding: 32,
       }}
     >
-      <h2 style={{ fontSize: 'clamp(24px, 3vw, 40px)', fontWeight: 800, textAlign: 'center' }}>
-        Создай свой мультфильм
+      <h2 style={{ fontSize: 'clamp(24px, 3vw, 40px)', fontWeight: 700, textAlign: 'center', fontFamily: 'var(--font-display)', letterSpacing: '-0.01em' }}>
+        СОЗДАЙ МУЛЬТФИЛЬМ
       </h2>
-      <p style={{ color: 'var(--text-muted)', maxWidth: 400, textAlign: 'center' }}>
-        Опиши историю — ИИ разобьет её на сцены, нарисует кадры и склеит видео.
+      <p style={{ color: 'var(--text-muted)', maxWidth: 400, textAlign: 'center', fontSize: 13, letterSpacing: '0.05em' }}>
+        Опиши историю — ИИ разобьёт её на сцены, нарисует кадры и склеит видео.
       </p>
       <motion.button
         whileHover={{ scale: 1.03 }}
@@ -388,12 +388,12 @@ function WelcomeScreen({ onCreate }: { onCreate: () => void }) {
         onClick={onCreate}
         style={{
           background: 'var(--accent)', color: 'var(--text-card)',
-          borderRadius: 'var(--radius-pill)', padding: '14px 44px',
-          fontSize: 15, fontWeight: 800,
-          boxShadow: '0 7px 0 #7a9a00, 0 10px 24px rgba(0,0,0,.45)',
+          padding: '14px 44px',
+          fontSize: 14, fontWeight: 700, letterSpacing: '0.1em',
+          boxShadow: '0 4px 0 var(--accent-dim)',
         }}
       >
-        Создать мультфильм
+        НАЧАТЬ МУЛЬТИПЛИКАЦИЮ
       </motion.button>
     </motion.div>
   )

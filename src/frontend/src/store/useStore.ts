@@ -42,7 +42,7 @@ export const useStore = create<AppState>()(
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
     }),
     {
-      name:    'animatai-store',
+      name:    'ohmytoon-store',
       partialize: (s) => ({
         falKey:          s.falKey,
         openrouterKey:   s.openrouterKey,

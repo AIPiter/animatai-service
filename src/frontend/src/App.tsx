@@ -36,9 +36,9 @@ export default function App() {
         <motion.div
           animate={{ opacity: [0.3, 1, 0.3] }}
           transition={{ duration: 1.4, repeat: Infinity }}
-          style={{ color: 'var(--accent)', fontSize: 32, fontWeight: 800 }}
+          style={{ color: 'var(--accent)', fontSize: 32, fontWeight: 700, letterSpacing: '0.1em' }}
         >
-          AnimatAI
+          OH_MY_TOON
         </motion.div>
       </div>
     )

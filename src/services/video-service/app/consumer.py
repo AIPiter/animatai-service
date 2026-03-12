@@ -16,6 +16,11 @@ from .stitcher import stitch_videos
 from .modes.lite     import generate as lite_gen
 from .modes.deluxe   import generate as deluxe_gen
 from .modes.standard import generate as standard_gen
+from .modes.standard.orchestrator import (
+    run_standard_pipeline,
+    resume_standard_pipeline,
+    get_pipeline_job,
+)
 
 QUEUE_NAME = "jobs.video"
 
@@ -212,6 +217,21 @@ async def run():
                         await _handle_generate(job, pool)
                     elif action == "render":
                         await _handle_render(job, pool)
+                    elif action == "standard_pipeline":
+                        await run_standard_pipeline(
+                            project_id=job["project_id"],
+                            user_id=job["user_id"],
+                            payload=job["payload"],
+                            api_keys=job.get("api_keys", {}),
+                            pool=pool,
+                        )
+                    elif action == "standard_pipeline_resume":
+                        await resume_standard_pipeline(
+                            project_id=job["project_id"],
+                            api_keys=job.get("api_keys", {}),
+                            pool=pool,
+                            from_stage=job["payload"].get("from_stage", "video_prompts"),
+                        )
                     else:
                         print(f"[video] Unknown action: {action}")
                 except Exception as e:

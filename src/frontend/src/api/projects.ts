@@ -78,3 +78,10 @@ export async function regenerateSceneVideo(projectId: string, sceneId: string): 
     headers: keys(),
   })
 }
+
+export async function resumePipeline(projectId: string): Promise<void> {
+  await api(`/api/projects/${projectId}/pipeline/resume`, {
+    method: 'POST',
+    headers: keys(),
+  })
+}

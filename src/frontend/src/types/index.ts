@@ -58,3 +58,11 @@ export type ProjectEvent =
   | { event: 'all_videos_done'; data: Record<string, never> }
   | { event: 'render_done';    data: { path: string } }
   | { event: 'error';          data: { message: string } }
+  | { event: 'pipeline_stage'; data: { stage: PipelineStage } }
+  | { event: 'standard_frames_ready'; data: { frame_count: number } }
+
+// Standard mode pipeline
+export type PipelineStage =
+  | 'parsing' | 'master_image' | 'visual_anchor' | 'frames'
+  | 'frames_ready' | 'video_prompts' | 'clips' | 'concat'
+  | 'complete' | 'failed'

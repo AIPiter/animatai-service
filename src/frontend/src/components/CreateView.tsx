@@ -8,7 +8,11 @@ interface Props {
   onCreated: (id: string) => void
 }
 
-const MODES   = [{ value: 'standard', label: 'Стандарт' }, { value: 'lite', label: 'Lite' }, { value: 'deluxe', label: 'Deluxe' }]
+const MODES   = [
+  { value: 'standard', label: 'Стандарт', desc: 'Автоматическая генерация с постоянством стиля' },
+  { value: 'lite',     label: 'Lite',     desc: 'Быстрая генерация без привязки стиля' },
+  { value: 'deluxe',   label: 'Deluxe',   desc: 'Цепочка кадров с аудио и высоким качеством' },
+]
 const STYLES  = [{ value: 'anime', label: 'Аниме' }, { value: 'cartoon', label: 'Мультфильм' }, { value: 'pixar', label: 'Pixar 3D' }]
 const DURATIONS = [{ value: 30, label: '30 сек' }, { value: 60, label: '1 мин' }, { value: 120, label: '2 мин' }]
 
@@ -92,7 +96,7 @@ export default function CreateView({ onCancel, onCreated }: Props) {
 
 function SegmentedControl({ label, options, value, onChange }: {
   label:    string
-  options:  { value: string | number; label: string }[]
+  options:  { value: string | number; label: string; desc?: string }[]
   value:    string | number
   onChange: (v: string) => void
 }) {
@@ -100,24 +104,32 @@ function SegmentedControl({ label, options, value, onChange }: {
     <div>
       <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>{label}</label>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        {options.map((o) => (
-          <button
-            key={String(o.value)}
-            onClick={() => onChange(String(o.value))}
-            style={{
-              padding:      '7px 10px',
-              borderRadius: 'var(--radius)',
-              fontSize:     13,
-              textAlign:    'left',
-              background:   String(o.value) === String(value) ? 'var(--bg-hover)' : 'transparent',
-              color:        String(o.value) === String(value) ? 'var(--accent)' : 'var(--text-muted)',
-              border:       `1px solid ${String(o.value) === String(value) ? 'var(--border)' : 'transparent'}`,
-              fontWeight:   String(o.value) === String(value) ? 600 : 400,
-            }}
-          >
-            {o.label}
-          </button>
-        ))}
+        {options.map((o) => {
+          const selected = String(o.value) === String(value)
+          return (
+            <button
+              key={String(o.value)}
+              onClick={() => onChange(String(o.value))}
+              style={{
+                padding:      '7px 10px',
+                borderRadius: 'var(--radius)',
+                fontSize:     13,
+                textAlign:    'left',
+                background:   selected ? 'var(--bg-hover)' : 'transparent',
+                color:        selected ? 'var(--accent)' : 'var(--text-muted)',
+                border:       `1px solid ${selected ? 'var(--border)' : 'transparent'}`,
+                fontWeight:   selected ? 600 : 400,
+              }}
+            >
+              {o.label}
+              {o.desc && selected && (
+                <span style={{ display: 'block', fontSize: 10, fontWeight: 400, color: 'var(--text-muted)', marginTop: 2 }}>
+                  {o.desc}
+                </span>
+              )}
+            </button>
+          )
+        })}
       </div>
     </div>
   )

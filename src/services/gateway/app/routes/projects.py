@@ -59,21 +59,35 @@ async def create_project(body: CreateProjectRequest, request: Request):
         scene_count=body.scene_count,
     )
 
-    # Dispatch LLM parsing job
-    await publish_job("llm", {
-        "job_id":     str(uuid.uuid4()),
-        "project_id": project_id,
-        "user_id":    request.state.user_id,
-        "mode":       body.mode,
-        "action":     "parse_scenario",
-        "payload": {
-            "scenario":    body.scenario,
-            "duration":    body.duration,
-            "style":       body.style,
-            "scene_count": body.scene_count,
-        },
-        "api_keys": _api_keys(request),
-    })
+    payload = {
+        "scenario":    body.scenario,
+        "duration":    body.duration,
+        "style":       body.style,
+        "scene_count": body.scene_count,
+    }
+
+    if body.mode == "standard":
+        # Standard mode: full pipeline (parsing → master → anchor → frames)
+        await publish_job("video", {
+            "job_id":     str(uuid.uuid4()),
+            "project_id": project_id,
+            "user_id":    request.state.user_id,
+            "mode":       body.mode,
+            "action":     "standard_pipeline",
+            "payload":    payload,
+            "api_keys":   _api_keys(request),
+        })
+    else:
+        # Lite/Deluxe: LLM parsing only
+        await publish_job("llm", {
+            "job_id":     str(uuid.uuid4()),
+            "project_id": project_id,
+            "user_id":    request.state.user_id,
+            "mode":       body.mode,
+            "action":     "parse_scenario",
+            "payload":    payload,
+            "api_keys":   _api_keys(request),
+        })
 
     return {"id": project_id, "status": "created"}
 
@@ -97,7 +111,8 @@ async def generate_images(project_id: str, request: Request):
     scenes = await db.get_scenes_by_project(project_id)
 
     for scene in scenes:
-        if not scene.get("image_prompt"):
+        prompt = scene.get("image_prompt") or scene.get("video_prompt")
+        if not prompt:
             continue
         await db.update_scene_status("generating", str(scene["id"]))
         await publish_job("image", {
@@ -108,7 +123,7 @@ async def generate_images(project_id: str, request: Request):
             "mode":       project["mode"],
             "action":     "generate_image",
             "payload": {
-                "prompt":    scene["image_prompt"],
+                "prompt":    prompt,
                 "filename":  f"scene-{scene['id']}.png",
                 "style":     project.get("style", "anime"),
             },
@@ -152,8 +167,9 @@ async def regenerate_scene_image(project_id: str, scene_id: str, request: Reques
     scene = await db.get_scene(scene_id)
     if not scene or str(scene["project_id"]) != project_id:
         raise HTTPException(404, "Scene not found")
-    if not scene.get("image_prompt"):
-        raise HTTPException(400, "Scene has no image prompt")
+    prompt = scene.get("image_prompt") or scene.get("video_prompt")
+    if not prompt:
+        raise HTTPException(400, "Scene has no image prompt or video prompt")
 
     await db.update_scene_status("generating", scene_id)
     await publish_job("image", {
@@ -164,7 +180,7 @@ async def regenerate_scene_image(project_id: str, scene_id: str, request: Reques
         "mode":       project["mode"],
         "action":     "generate_image",
         "payload": {
-            "prompt":   scene["image_prompt"],
+            "prompt":   prompt,
             "filename": f"scene-{scene_id}.png",
             "style":    project.get("style", "anime"),
         },
@@ -271,6 +287,30 @@ async def render(project_id: str, request: Request):
 
     await db.update_project_status("rendering", project_id)
     return {"message": "Render started"}
+
+
+# ── Standard mode pipeline resume ─────────────────────────────────────────────
+
+@router.post("/{project_id}/pipeline/resume")
+async def resume_pipeline(project_id: str, request: Request):
+    """Resume standard mode pipeline after user approves frames."""
+    project = await _owned_project(project_id, request)
+    if project["mode"] != "standard":
+        raise HTTPException(400, "Pipeline resume is only for standard mode")
+
+    await db.update_project_status("generating_videos", project_id)
+    await publish_job("video", {
+        "job_id":     str(uuid.uuid4()),
+        "project_id": project_id,
+        "user_id":    request.state.user_id,
+        "mode":       "standard",
+        "action":     "standard_pipeline_resume",
+        "payload": {
+            "from_stage": "video_prompts",
+        },
+        "api_keys": _api_keys(request),
+    })
+    return {"message": "Pipeline resumed — generating videos"}
 
 
 # ── Download ──────────────────────────────────────────────────────────────────

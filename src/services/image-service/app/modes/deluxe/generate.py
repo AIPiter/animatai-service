@@ -1,12 +1,9 @@
-"""Deluxe mode image generation — FLUX-2-pro via fal.ai (port of imageGenFal.js)."""
+"""Deluxe mode image generation — FLUX-2-pro via fal.ai."""
 
-import asyncio
 import httpx
 import fal_client
 
 FAL_MODEL = "fal-ai/flux-2-pro"
-POLL_INTERVAL = 5
-TIMEOUT = 5 * 60  # 5 minutes
 
 
 async def run(payload: dict, api_keys: dict) -> bytes:
@@ -15,6 +12,7 @@ async def run(payload: dict, api_keys: dict) -> bytes:
 
     os_env_backup = _set_fal_key(fal_key)
     try:
+        print(f"[image/deluxe] Submitting to fal.ai: {FAL_MODEL}")
         handler = await fal_client.submit_async(
             FAL_MODEL,
             arguments={
@@ -23,18 +21,9 @@ async def run(payload: dict, api_keys: dict) -> bytes:
             },
         )
 
-        start = asyncio.get_event_loop().time()
-        while True:
-            if asyncio.get_event_loop().time() - start > TIMEOUT:
-                raise TimeoutError("FLUX image generation timed out after 5 minutes")
-
-            status = await handler.status()
-            if status == "COMPLETED":
-                break
-            await asyncio.sleep(POLL_INTERVAL)
-
         result = await handler.get()
         image_url = result["images"][0]["url"]
+        print(f"[image/deluxe] Done, downloading from {image_url[:80]}...")
 
         async with httpx.AsyncClient(timeout=60) as client:
             resp = await client.get(image_url)

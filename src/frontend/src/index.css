@@ -1,46 +1,51 @@
-/* Design tokens — matches existing theme.css palette */
+/* Design tokens — OhMyToon HUD theme */
 :root {
-  --bg:         #0a0a0a;
-  --bg-card:    #141414;
-  --bg-hover:   #1a1a1a;
-  --border:     #2a2a2a;
-  --accent:     #b8f000;
-  --accent-dim: #8ab800;
-  --text:       #f0f0f0;
-  --text-muted: #888;
-  --text-card:  #0a0a0a;
-  --radius:     8px;
-  --radius-pill:999px;
+  --bg:         #030303;
+  --bg-card:    #0a0a0a;
+  --bg-hover:   #141414;
+  --border:     #222;
+  --accent:     #D4FF45;
+  --accent-dim: #9ab830;
+  --text:       #F4F4F4;
+  --text-muted: #666;
+  --text-card:  #030303;
+  --radius:     0px;
+  --radius-pill:0px;
+
+  --font-display: 'Oswald', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-mono);
   background:  var(--bg);
   color:       var(--text);
   min-height:  100dvh;
   -webkit-font-smoothing: antialiased;
+  text-transform: uppercase;
 }
 
 a { color: inherit; text-decoration: none; }
 
 button {
-  font-family: inherit;
+  font-family: var(--font-mono);
   cursor:      pointer;
   border:      none;
   background:  none;
 }
 
 input, textarea, select {
-  font-family: inherit;
+  font-family: var(--font-mono);
   background:  var(--bg-card);
   color:       var(--text);
   border:      1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
   padding:     8px 12px;
   outline:     none;
   transition:  border-color .15s;
+  text-transform: none;
 }
 input:focus, textarea:focus, select:focus {
   border-color: var(--accent);
@@ -48,4 +53,4 @@ input:focus, textarea:focus, select:focus {
 
 ::-webkit-scrollbar       { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 0; }
